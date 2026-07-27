@@ -45,6 +45,7 @@
         .upload-btn-wrapper input[type=file] { font-size: 16px; width: 100%; border: 2px solid #b2ebf2; padding: 10px; border-radius: 8px; cursor: pointer;}
         .chips-container { display: flex; flex-wrap: wrap; gap: 10px; flex: 1; align-content: flex-start; }
         .file-chip { background: #00bcd4; color: white; padding: 8px 12px; border-radius: 20px; font-size: 14px; cursor: grab; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); user-select: none; }
+        .file-chip.server-chip { background: #8e44ad; }
         .mapping-table-container { flex: 2; background: rgba(255,255,255,0.7); border-radius: 10px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);}
         .mapping-table { width: 100%; border-collapse: collapse; }
         .mapping-table th, .mapping-table td { border: 2px solid #b2ebf2; padding: 8px; text-align: center; font-size: 16px;}
@@ -84,6 +85,37 @@
         .status-transfer { color: #e65100; font-weight: 900; }
         th.grace-col { background: #2e7d32 !important; z-index: 12 !important; }
         td.grace-cell { background: rgba(46, 125, 50, 0.15) !important; font-weight: bold; font-size: 15px; color: #2e7d32; white-space: nowrap; text-align: center;}
+        
+        /* الدائرة الحمراء لتقدير المواد الرسوب (ض، ض ج، ر ل) */
+        .red-circle-badge {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #d32f2f;
+            background-color: rgba(211, 47, 47, 0.12);
+            color: #b71c1c !important;
+            font-weight: 900;
+            padding: 2px;
+            box-shadow: 0 2px 6px rgba(211, 47, 47, 0.3);
+            text-shadow: none;
+            margin: 2px;
+        }
+
+        .status-select {
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid #1565c0;
+            background-color: #fff;
+            color: #0d47a1;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            outline: none;
+        }
+
         .term-breakdown { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
         .t-row { font-size: 13px; color: #555; border-bottom: 1px dashed #ccc; width: 100%; padding: 3px 0; }
         .t-row.last { border-bottom: none; font-size: 16px; font-weight: 900; color: #000; margin-top: 3px; padding-top: 2px; }
@@ -163,7 +195,7 @@
             body { background: white !important; zoom: 0.65; padding-bottom: 0 !important;}
             .container { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
             .top-controls, .drag-drop-section, .search-dropdown-container, .floating-btn, h1, .control-panels-wrapper, #importExportedArea { display: none !important; }
-            .bulk-input, .bulk-component-input, input[type="checkbox"], .cap-btn, .manual-pass-input { display: none !important; }
+            .bulk-input, .bulk-component-input, input[type="checkbox"], .cap-btn, .manual-pass-input, .status-select { display: none !important; }
             .table-responsive { max-height: none !important; overflow: visible !important; box-shadow: none !important; margin-top: 0 !important;}
             table.main-table { width: 100% !important; table-layout: auto; border-collapse: collapse !important; display: table !important; }
             .main-table thead { display: table-header-group !important; }
@@ -187,6 +219,7 @@
             .grace-badge { background-color: #28a745 !important; color: white !important; padding: 1px 4px; box-shadow: none; }
             .mokayed-badge { background-color: #fce4ec !important; color: #ad1457 !important; border: 1px solid #f48fb1 !important; padding: 1px 4px; box-shadow: none; display: inline-flex; justify-content: center; align-items: center; min-width: 26px; height: 26px; border-radius: 20px; font-size: 14px; font-weight: bold; white-space: nowrap; text-shadow: none; }
             .cap-badge { background-color: #e67e22 !important; color: white !important; padding: 1px 4px; box-shadow: none; display: inline-flex; justify-content: center; align-items: center; min-width: 26px; height: 26px; border-radius: 20px; font-size: 14px; font-weight: bold; white-space: nowrap; text-shadow: none; }
+            .red-circle-badge { border-color: #d32f2f !important; background-color: transparent !important; color: #d32f2f !important; box-shadow: none !important; }
             .grace-original { color: #000 !important; font-size: 10px !important;}
             .text-passed { font-size: 10px !important; color: #000 !important; }
             .status-transfer { color: #000 !important; font-weight: bold !important; }
@@ -246,8 +279,8 @@
         
         <div class="drag-drop-section" id="dragDropArea" style="display:none;">
             <div class="file-bank" id="fileBank" ondrop="drop(event)" ondragover="allowDrop(event)">
-                <div class="file-bank-title">📂 بنك الملفات المرفوعة</div>
-                <div class="upload-btn-wrapper">
+                <div class="file-bank-title" id="fileBankTitle">📂 بنك الملفات المرفوعة</div>
+                <div class="upload-btn-wrapper" id="uploadWrapper">
                     <input type="file" id="masterFileUploader" multiple accept=".xls,.xlsx,.csv" onchange="handleFileUpload(event)" title="ارفع جميع الملفات هنا ثم اسحبها للجدول">
                 </div>
                 <div class="chips-container" id="chipsContainer" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
@@ -298,7 +331,7 @@
                     <label style="display:flex; align-items:center; gap:8px; padding: 8px; cursor:pointer; font-weight:bold; border-bottom: 1px solid #e0f7fa;"><input type="checkbox" class="status-filter-chk" value="فرصة اولي,فرصة أولى" checked onchange="handleMainWildcardSearch()"> فرصة أولى</label>
                     <label style="display:flex; align-items:center; gap:8px; padding: 8px; cursor:pointer; font-weight:bold; border-bottom: 1px solid #e0f7fa;"><input type="checkbox" class="status-filter-chk" value="فرصة ثاني" checked onchange="handleMainWildcardSearch()"> فرصة ثانية</label>
                     <label style="display:flex; align-items:center; gap:8px; padding: 8px; cursor:pointer; font-weight:bold; border-bottom: 1px solid #e0f7fa;"><input type="checkbox" class="status-filter-chk" value="فرصة ثالث" checked onchange="handleMainWildcardSearch()"> فرصة ثالثة</label>
-                    <label style="display:flex; align-items:center; gap:8px; padding: 8px; cursor:pointer; font-weight:bold; border-bottom: 1px solid #e0f7fa;"><input type="checkbox" class="status-filter-chk" value="فرصة رابع" checked onchange="handleMainWildcardSearch()"> فرصة رابعة</label>
+                    <label style="display:flex; align-items:center; gap:8px; padding: 8px; cursor:pointer; font-weight:bold; border-bottom: 1px solid #e0f7fa;"><input type="checkbox" class="status-filter-chk" value="فرصة رابع,فرصة أخيرة" checked onchange="handleMainWildcardSearch()"> فرصة رابعة / أخيرة</label>
                     <label style="display:flex; align-items:center; gap:8px; padding: 8px; cursor:pointer; font-weight:bold;"><input type="checkbox" class="status-filter-chk" value="مقيد" checked onchange="handleMainWildcardSearch()"> مقيد الحرية</label>
                 </div>
             </div>
@@ -400,6 +433,7 @@
                             <label style="cursor:pointer; font-weight:bold;"><input type="checkbox" class="at-risk-type-chk" value="فرصة اولي,فرصة أولى" checked onchange="triggerReRender()"> فرصة أولى</label>
                             <label style="cursor:pointer; font-weight:bold;"><input type="checkbox" class="at-risk-type-chk" value="فرصة ثاني" checked onchange="triggerReRender()"> فرصة ثانية</label>
                             <label style="cursor:pointer; font-weight:bold;"><input type="checkbox" class="at-risk-type-chk" value="فرصة ثالث" checked onchange="triggerReRender()"> فرصة ثالثة</label>
+                            <label style="cursor:pointer; font-weight:bold;"><input type="checkbox" class="at-risk-type-chk" value="فرصة أخيرة,فرصة اخيرة" checked onchange="triggerReRender()"> فرصة أخيرة</label>
                         </div>
                         <div id="atRiskGraceControls" style="display: flex; gap: 20px; flex-wrap: wrap; align-items: center; width: 100%; padding-top: 10px; border-top: 1px solid #b2ebf2;">
                             <div class="grace-ctrl-group">
@@ -594,6 +628,26 @@
             return str.toString().replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/\s+/g, '');
         };
 
+        const statusOptions = [
+            "مستجد",
+            "باقي",
+            "باقي (تغيير مسار)",
+            "باقي (تغيير مسار) فرصة أخيرة",
+            "مستجد بفرصة",
+            "فرصة أولى",
+            "فرصة ثانية",
+            "فرصة ثالثة",
+            "فرصة أخيرة"
+        ];
+
+        function updateStudentStatus(stIdx, newStatus) {
+            let st = currentRenderedData[stIdx];
+            if (st) {
+                st.status = newStatus;
+                triggerReRender();
+            }
+        }
+
         function updateTakhName(stIdx, subj, val) {
             let st = currentRenderedData[stIdx];
             if (st && st.scores[subj]) {
@@ -744,11 +798,66 @@
             updateChartDisplay();
         }
 
-        function toggleReadMode() {
+        async function toggleReadMode() {
             let mode = document.querySelector('input[name="readMode"]:checked').value;
-            document.getElementById('dragDropArea').style.display = (mode === 'manual') ? 'flex' : 'none';
-            document.getElementById('importExportedArea').style.display = (mode === 'import_exported') ? 'block' : 'none';
+            let dragDropArea = document.getElementById('dragDropArea');
+            let importExportedArea = document.getElementById('importExportedArea');
+            
+            if (mode === 'manual' || mode === 'auto') {
+                dragDropArea.style.display = 'flex';
+                importExportedArea.style.display = 'none';
+                
+                if (mode === 'auto') {
+                    document.getElementById('uploadWrapper').style.display = 'none';
+                    document.getElementById('fileBankTitle').innerText = '🌐 ملفات السيرفر المتاحة (اسحب الملف)';
+                    await fetchServerFilesForDragDrop();
+                } else {
+                    document.getElementById('uploadWrapper').style.display = 'block';
+                    document.getElementById('fileBankTitle').innerText = '📂 بنك الملفات المرفوعة';
+                }
+            } else if (mode === 'import_exported') {
+                dragDropArea.style.display = 'none';
+                importExportedArea.style.display = 'block';
+            } else {
+                dragDropArea.style.display = 'none';
+                importExportedArea.style.display = 'none';
+            }
             triggerReRender();
+        }
+
+        async function fetchServerFilesForDragDrop() {
+            const container = document.getElementById('chipsContainer');
+            container.innerHTML = '';
+            
+            let serverFilesList = [];
+            for (let sub of defaultSubjects) {
+                let m = fileMapping[sub];
+                if (m) {
+                    if (m.t1) serverFilesList.push(m.t1);
+                    if (m.t2) serverFilesList.push(m.t2);
+                }
+            }
+            if (serverFilesList.length === 0) {
+                serverFilesList = [
+                    'دوائر_ترم_1.xlsx', 'دوائر_ترم_2.xlsx',
+                    'الكترونيات_ترم_1.xlsx', 'الكترونيات_ترم_2.xlsx',
+                    'رياضيات_ترم_1.xlsx', 'رياضيات_ترم_2.xlsx',
+                    'برمجة_ترم_1.xlsx', 'برمجة_ترم_2.xlsx',
+                    'فيزياء.xlsx', 'اقتصاد.xlsx', 'تقارير.xlsx'
+                ];
+            }
+
+            for (let fileName of serverFilesList) {
+                let fileId = 'srv_file_' + encodeURIComponent(fileName);
+                globalFilesStore[fileId] = fileName; // تخزين اسم الملف كمؤشر للسيرفر
+                let chip = document.createElement('div');
+                chip.className = 'file-chip server-chip';
+                chip.draggable = true;
+                chip.id = fileId;
+                chip.innerHTML = `🌐 ${fileName}`;
+                chip.ondragstart = drag;
+                container.appendChild(chip);
+            }
         }
 
         function openSettingsModal() { document.getElementById('settingsModal').style.display = 'block'; }
@@ -1059,7 +1168,7 @@
             let row1 = `<tr>
                 <th rowspan="2" style="width: 50px;">الجلوس</th>
                 <th rowspan="2" style="min-width: 180px;">اسم الطالب</th>
-                <th rowspan="2" style="min-width: 60px;">الحالة</th>`;
+                <th rowspan="2" style="min-width: 100px;">الحالة</th>`;
             
             let row2 = `<tr>`;
             let grandTotalMax = 0;
@@ -1586,7 +1695,7 @@
                     });
                 };
 
-                if (mode === 'manual') {
+                if (mode === 'manual' || mode === 'auto') {
                     const dropZones = document.querySelectorAll('.mapping-table td.drop-zone');
 
                     for (let zone of dropZones) {
@@ -1598,34 +1707,21 @@
                         if (chips.length > 0) hasProcessedAnyFile = true;
 
                         for (let chip of chips) {
-                            let file = globalFilesStore[chip.id];
-                            if (!file) continue;
-                            const fileBuffer = await file.arrayBuffer();
-                            processExcelData(fileBuffer, defSubject, termNum);
-                        }
-                    }
-                } else if (mode === 'auto') {
-                    for (let i = 0; i < defaultSubjects.length; i++) {
-                        let defSubject = defaultSubjects[i];
-                        let mapping = fileMapping[defSubject];
-
-                        for (let termNum of [1, 2]) {
-                            let fileName = termNum === 1 ? mapping.t1 : mapping.t2;
-                            if (!fileName) continue;
-
-                            try {
-                                let response = await fetch(fileName);
-                                if (!response.ok) {
-                                    console.warn(`الملف غير موجود أو حدث خطأ أثناء جلبه: ${fileName}`);
-                                    continue;
-                                }
-                                
-                                const fileBuffer = await response.arrayBuffer();
-                                hasProcessedAnyFile = true;
+                            let fileOrName = globalFilesStore[chip.id];
+                            if (!fileOrName) continue;
+                            
+                            if (typeof fileOrName === 'string') {
+                                // جلب ملف السيرفر بحسب الاسم
+                                try {
+                                    let response = await fetch(fileOrName);
+                                    if (response.ok) {
+                                        const fileBuffer = await response.arrayBuffer();
+                                        processExcelData(fileBuffer, defSubject, termNum);
+                                    }
+                                } catch(e) { console.error(e); }
+                            } else {
+                                const fileBuffer = await fileOrName.arrayBuffer();
                                 processExcelData(fileBuffer, defSubject, termNum);
-                                
-                            } catch (fetchErr) {
-                                console.error(`خطأ أثناء معالجة الملف ${fileName}:`, fetchErr);
                             }
                         }
                     }
@@ -1882,7 +1978,17 @@
                     let tdName = document.createElement('td'); tdName.textContent = student.name || '-'; tr.appendChild(tdName);
                     
                     let statStr = student.status || "";
-                    let tdStatusCol = document.createElement('td'); tdStatusCol.textContent = statStr || '-'; tr.appendChild(tdStatusCol);
+                    let isFreshman = (statStr === "مستجد");
+
+                    let tdStatusCol = document.createElement('td');
+                    if (isFreshman) {
+                        tdStatusCol.textContent = statStr;
+                    } else {
+                        // خيارات التبديل الديناميكي للحالة للطلاب غير المستجدين
+                        let optsHtml = statusOptions.map(opt => `<option value="${opt}" ${statStr === opt ? 'selected' : ''}>${opt}</option>`).join('');
+                        tdStatusCol.innerHTML = `<select class="status-select" onchange="updateStudentStatus(${studentIndex}, this.value)">${optsHtml}</select>`;
+                    }
+                    tr.appendChild(tdStatusCol);
 
                     let studentGrandTotal = 0, studentMaxGrandTotal = 0;
                     let studentTotalGraceMarks = 0, graceSubjectsCount = 0; 
@@ -1922,6 +2028,7 @@
                         let hasPractical = practicalSubjectsKeys.includes(subject);
                         let isTakhlof = subject.startsWith('تخلف');
                         
+                        // احتساب مادة التخلف أساسية افتراضياً وتكون إنسانية فقط عند اختيار مربع التحديد صراحة
                         let isHum = isTakhlof ? (actual.isHum === true) : humanitiesSubjectsKeys.includes(subject);
                         let fbLocal = getSubjectFallbackMaxes(subject);
 
@@ -2146,19 +2253,18 @@
                         };
                     });
 
-                    // --- PASS 2: Grace Allocation Engine (مُحدَّث لدعم رأفة المستجدين) ---
+                    // --- PASS 2: Grace Allocation Engine ---
                     let initialFailsCount = initialCoreFails + initialHumFails;
                     let graceAllocations = {};
 
-                    // فحص حالة الرسوب الشاملة (للطالب سواء كان مستجداً أو معرضاً للفصل)
                     function evalFailsStatus(cCount, hCount) {
-                        if (cCount === 0 && hCount === 0) return 0; // ناجح صافي
-                        if (cCount === 1 && hCount === 0) return 1; // منقول بمادة
-                        if (cCount === 2 && hCount === 0) return 2; // منقول بمادتين
-                        if (cCount === 0 && hCount === 1) return 1; // منقول بمادة
-                        if (cCount === 1 && hCount === 1) return 2; // منقول بمادتين
-                        if (cCount === 2 && hCount === 1) return 3; // منقول بمادتين + انسانية
-                        return 4; // راسب بقرار فصل أو إعادة سنة
+                        if (cCount === 0 && hCount === 0) return 0;
+                        if (cCount === 1 && hCount === 0) return 1;
+                        if (cCount === 2 && hCount === 0) return 2;
+                        if (cCount === 0 && hCount === 1) return 1;
+                        if (cCount === 1 && hCount === 1) return 2;
+                        if (cCount === 2 && hCount === 1) return 3;
+                        return 4;
                     }
 
                     let initialStatusCode = evalFailsStatus(initialCoreFails, initialHumFails);
@@ -2208,7 +2314,6 @@
 
                          let newStatusCode = evalFailsStatus(simCoreFails, simHumFails);
 
-                         // تطبيق الرأفة إذا أدت إما لنقل الطالب لدرجة أعلى (مثلاً تحويله لـ ناجح صافي أو تقليل عدد مواد الرسوب)
                          if (newStatusCode < initialStatusCode || Object.keys(tempAllocations).length > 0) {
                               graceAllocations = tempAllocations;
                          } else if (initialStatusCode === 4) {
@@ -2436,7 +2541,7 @@
                             let valInpHTML = valInp;
 
                             if (isTakhAbs) {
-                                displayGrade = "غ"; 
+                                displayGrade = `<span class="red-circle-badge">غ</span>`; 
                                 tdGrade.className = `subject-grade ${subCls} grade-bylaw`;
                                 subjectIsFailed = true; 
                                 internalStatsGrade = 'غائب';
@@ -2453,6 +2558,8 @@
 
                                 if (takhPct < 50) {
                                     subjectIsFailed = true;
+                                    displayGrade = `<span class="red-circle-badge">${takhGradeInfo.symbol}</span>`;
+                                    valInpHTML = `<span class="red-circle-badge">${numVal}</span>`;
                                 }
                             }
                             
@@ -2463,21 +2570,14 @@
                             displayScoreHTML = baseScoreStr;
 
                             if (currentIsAbsent && !actual.passedT1 && !actual.passedT2) {
-                                displayScoreHTML = `<span class="fail-highlight">غ</span>`;
-                                displayGrade = "غ"; tdGrade.className = `subject-grade ${subCls} grade-bylaw`;
+                                displayScoreHTML = `<span class="red-circle-badge">غ</span>`;
+                                displayGrade = `<span class="red-circle-badge">غ</span>`; 
+                                tdGrade.className = `subject-grade ${subCls} grade-bylaw`;
                                 subjectIsFailed = true; internalStatsGrade = 'غائب';
                             } else if (isBylawFail) {
-                                displayScoreHTML = `<span class="fail-highlight">${baseScoreStr}</span>`;
-                                if (isSpecialCalculated) {
-                                    displayScoreHTML = `<div class="mokayed-tooltip">
-                                                        <div class="grace-wrapper">
-                                                            <span class="fail-highlight" style="margin-bottom: 2px;">${scaledMokayedScore}</span>
-                                                            <span class="grace-original">${rawWrittenForTooltip}</span>
-                                                        </div>
-                                                        <span class="tooltip-text">الدرجة الأصلية: ${rawWrittenForTooltip}<br>الدرجة المعدلة: ${scaledMokayedScore}</span>
-                                                    </div>`;
-                                }
-                                displayGrade = "ر ل"; tdGrade.className = `subject-grade ${subCls} grade-bylaw`;
+                                displayScoreHTML = `<span class="red-circle-badge">${baseScoreStr}</span>`;
+                                displayGrade = `<span class="red-circle-badge">ر ل</span>`; 
+                                tdGrade.className = `subject-grade ${subCls} grade-bylaw`;
                                 subjectIsFailed = true; internalStatsGrade = 'راسب لائحة';
                                 if (passedStatusText) displayGrade += ` <span class="text-passed">(${passedStatusText})</span>`;
                             } else if (isFailing) {
@@ -2485,33 +2585,15 @@
                                     let raisedScore = finalScore + graceAdded;
                                     let raisedGradeInfo = getEgyptianGrade((raisedScore / maxScore) * 100);
                                     
-                                    if (isSpecialCalculated) {
-                                        displayScoreHTML = `<div class="mokayed-tooltip">
-                                                            <div class="grace-wrapper">
-                                                                <span class="grace-badge">${raisedScore}</span>
-                                                                <span class="mokayed-badge" style="text-decoration: line-through; opacity: 0.8; margin-top:4px; height: 20px; font-size: 12px; min-width: 20px; padding: 0 4px;">${scaledMokayedScore}</span>
-                                                            </div>
-                                                            <span class="tooltip-text">الدرجة الأصلية: ${rawWrittenForTooltip}<br>الدرجة المعدلة: ${scaledMokayedScore}</span>
-                                                        </div>`;
-                                    } else {
-                                        displayScoreHTML = `<div class="grace-wrapper"><span class="grace-badge">${raisedScore}</span><span class="grace-original">${baseScoreStr}</span></div>`;
-                                    }
+                                    displayScoreHTML = `<div class="grace-wrapper"><span class="grace-badge">${raisedScore}</span><span class="grace-original">${baseScoreStr}</span></div>`;
                                     
                                     displayGrade = raisedGradeInfo.symbol;
                                     if (passedStatusText) displayGrade += ` <span class="text-passed">(${passedStatusText})</span>`;
                                     tdGrade.className = `subject-grade ${subCls} ${raisedGradeInfo.cssClass}`;
                                     internalStatsGrade = raisedGradeInfo.text; 
                                 } else {
-                                    displayScoreHTML = `<span class="fail-highlight">${baseScoreStr}</span>`;
-                                    if (isSpecialCalculated) {
-                                        displayScoreHTML = `<div class="mokayed-tooltip">
-                                                            <div class="grace-wrapper">
-                                                                <span class="fail-highlight" style="margin-bottom: 2px;">${scaledMokayedScore}</span>
-                                                                <span class="grace-original">${rawWrittenForTooltip}</span>
-                                                            </div>
-                                                            <span class="tooltip-text">الدرجة الأصلية: ${rawWrittenForTooltip}<br>الدرجة المعدلة: ${scaledMokayedScore}</span>
-                                                        </div>`;
-                                    }
+                                    displayScoreHTML = `<span class="red-circle-badge">${baseScoreStr}</span>`;
+                                    displayGrade = `<span class="red-circle-badge">${gradeInfo.symbol}</span>`;
                                     subjectIsFailed = true; internalStatsGrade = gradeInfo.text; 
                                 }
                             } else {
@@ -2520,17 +2602,7 @@
                                     let raisedScore = finalScore + graceAdded;
                                     let raisedGradeInfo = getEgyptianGrade((raisedScore / maxScore) * 100);
                                     
-                                    if (isSpecialCalculated) {
-                                        displayScoreHTML = `<div class="mokayed-tooltip">
-                                                            <div class="grace-wrapper">
-                                                                <span class="grace-badge">${raisedScore}</span>
-                                                                <span class="mokayed-badge" style="text-decoration: line-through; opacity: 0.8; margin-top:4px; height: 20px; font-size: 12px; min-width: 20px; padding: 0 4px;">${scaledMokayedScore}</span>
-                                                            </div>
-                                                            <span class="tooltip-text">الدرجة الأصلية: ${rawWrittenForTooltip}<br>الدرجة المعدلة: ${scaledMokayedScore}</span>
-                                                        </div>`;
-                                    } else {
-                                        displayScoreHTML = `<div class="grace-wrapper"><span class="grace-badge">${raisedScore}</span><span class="grace-original">${baseScoreStr}</span></div>`;
-                                    }
+                                    displayScoreHTML = `<div class="grace-wrapper"><span class="grace-badge">${raisedScore}</span><span class="grace-original">${baseScoreStr}</span></div>`;
                                     
                                     displayGrade = raisedGradeInfo.symbol;
                                     if (passedStatusText) displayGrade += ` <span class="text-passed">(${passedStatusText})</span>`;
@@ -2553,18 +2625,7 @@
                                                 let raisedScore = finalScore + upgradeAdded;
                                                 let raisedGradeInfo = getEgyptianGrade((raisedScore / maxScore) * 100);
                                                 
-                                                if (isSpecialCalculated) {
-                                                    displayScoreHTML = `<div class="mokayed-tooltip">
-                                                                        <div class="upgrade-wrapper">
-                                                                            <span class="upgrade-badge">${raisedScore}</span>
-                                                                            <span class="mokayed-badge" style="text-decoration: line-through; opacity: 0.8; margin-top:4px; height: 20px; font-size: 12px; min-width: 20px; padding: 0 4px;">${scaledMokayedScore}</span>
-                                                                        </div>
-                                                                        <span class="tooltip-text">الدرجة الأصلية: ${rawWrittenForTooltip}<br>الدرجة المعدلة: ${scaledMokayedScore}</span>
-                                                                    </div>`;
-                                                } else {
-                                                    displayScoreHTML = `<div class="upgrade-wrapper"><span class="upgrade-badge">${raisedScore}</span><span class="grace-original">${baseScoreStr}</span></div>`;
-                                                }
-                                                
+                                                displayScoreHTML = `<div class="upgrade-wrapper"><span class="upgrade-badge">${raisedScore}</span><span class="grace-original">${baseScoreStr}</span></div>`;
                                                 displayGrade = raisedGradeInfo.symbol;
                                                 if (passedStatusText) displayGrade += ` <span class="text-passed">(${passedStatusText})</span>`;
                                                 
@@ -2577,28 +2638,9 @@
                                     
                                     if (upgradeAdded === 0 && graceAdded === 0) {
                                         if (wasActuallyCapped) {
-                                            if (isSpecialCalculated) {
-                                                displayScoreHTML = `<div class="mokayed-tooltip">
-                                                                    <div class="upgrade-wrapper">
-                                                                        <span class="cap-badge">${baseScoreStr}</span>
-                                                                        <span class="mokayed-badge" style="text-decoration: line-through; opacity: 0.8; margin-top:4px; height: 20px; font-size: 12px; min-width: 20px; padding: 0 4px;">${uncappedScore}</span>
-                                                                    </div>
-                                                                    <span class="tooltip-text">الدرجة الأصلية: ${rawWrittenForTooltip}<br>الدرجة المعدلة: ${scaledMokayedScore}</span>
-                                                                </div>`;
-                                            } else {
-                                                displayScoreHTML = `<div class="upgrade-wrapper"><span class="cap-badge">${baseScoreStr}</span><span class="grace-original">${uncappedScore}</span></div>`;
-                                            }
+                                            displayScoreHTML = `<div class="upgrade-wrapper"><span class="cap-badge">${baseScoreStr}</span><span class="grace-original">${uncappedScore}</span></div>`;
                                             tdGrade.className = `subject-grade ${subCls} cap-grade`;
                                         } else {
-                                            if (isSpecialCalculated) {
-                                                displayScoreHTML = `<div class="mokayed-tooltip">
-                                                                    <div class="grace-wrapper">
-                                                                        <span class="mokayed-badge" style="margin-bottom: 2px;">${scaledMokayedScore}</span>
-                                                                        <span class="grace-original">${rawWrittenForTooltip}</span>
-                                                                    </div>
-                                                                    <span class="tooltip-text">الدرجة الأصلية: ${rawWrittenForTooltip}<br>الدرجة المعدلة: ${scaledMokayedScore}</span>
-                                                                </div>`;
-                                            }
                                             internalStatsGrade = gradeInfo.text;
                                         }
                                     }
@@ -2944,7 +2986,7 @@
                 let t1HasFiles = false;
                 let t2HasFiles = false;
 
-                if (mode === 'manual' || mode === 'import_exported' || mode === 'github_integrated') {
+                if (mode === 'manual' || mode === 'import_exported' || mode === 'github_integrated' || mode === 'auto') {
                     t1HasFiles = true; t2HasFiles = true;
                 } else {
                     let mapping = fileMapping[subName];
@@ -2953,7 +2995,7 @@
                 }
 
                 if(actual) {
-                    let man = actual.manual || { t1:{yw:'', prac:'', writ:''}, t2:{yw:'', prac:'', writ:''}, total:{yw:'', prac:'', writ:''} };
+                    let man = actual.manual || { t1:{yw:'', prac:'', writ:''}, t2:{yw:'', prac:'', writ:''} };
                     let isCurrentAbs = isCont ? (actual.totalTerms > 0 && actual.absentTerms === actual.totalTerms) : actual.isAbsent;
                     
                     if(isCont) {
