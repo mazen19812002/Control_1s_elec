@@ -429,7 +429,7 @@
             <div style="background: #e0f7fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
                 <h3 style="margin-top: 0; color: #00838f;">أولاً: جدول التحكم في نسب الرأفة وحالات معرض للفصل حسب الحالة</h3>
                 <p style="font-size: 14px; color: #004d40; font-weight: bold; margin-bottom: 10px;">
-                    * ملاحظة: تطبق الرأفة بحد أقصى على (نصف عدد المواد الأساسية) المسجل بها الطالب في حالة التحويل من راسب إلى منقول/ناجح.
+                    * ملاحظة: تطبق الرأفة بحد أقصى على (نصف عدد المواد الأساسية) المسجل بها الطالب في حالة التحويل من راسب إلى منقول (منقول بمادة / مادتين / مادتين ومادة إنسانية).
                 </p>
                 <table class="settings-table">
                     <thead>
@@ -642,7 +642,6 @@
             "فرصة أخيرة"
         ];
 
-        // جدول الإعدادات التفصيلي لكل حالة
         let statusGraceConfigs = {
             "مستجد": { isAtRisk: false, pct: 6 },
             "باقي": { isAtRisk: false, pct: 6 },
@@ -2031,7 +2030,6 @@
                     let isForsa = statStr.includes("فرص");
                     let isMokayed = statStr.includes("مقيد");
                     
-                    // جلب إعدادات الرأفة المخصصة للحالة الحالية للطالب من الجدول
                     let stCfg = statusGraceConfigs[statStr] || { isAtRisk: false, pct: 6 };
                     let applyAtRiskRules = stCfg.isAtRisk;
 
@@ -2045,7 +2043,7 @@
                     let initialCoreFails = 0;
                     let tempStudentMaxGrandTotal = 0;
                     let absentSubjectsCount = 0;
-                    let totalCoreSubjectsCount = 0; // حصر عدد المواد الأساسية للتحقق من شرط النصف
+                    let totalCoreSubjectsCount = 0; 
 
                     defaultSubjects.forEach((subject, subjectIndex) => {
                         let actual = student?.scores?.[subject] || {};
@@ -2054,7 +2052,6 @@
                         let hasPractical = practicalSubjectsKeys.includes(subject);
                         let isTakhlof = subject.startsWith('تخلف');
                         
-                        // احتساب مادة التخلف أساسية افتراضياً وتكون إنسانية فقط عند اختيار مربع التحديد صراحة
                         let isHum = isTakhlof ? (actual.isHum === true) : humanitiesSubjectsKeys.includes(subject);
                         let fbLocal = getSubjectFallbackMaxes(subject);
 
@@ -2288,18 +2285,18 @@
                     let graceAllocations = {};
 
                     function evalFailsStatus(cCount, hCount) {
-                        if (cCount === 0 && hCount === 0) return 0;
-                        if (cCount === 1 && hCount === 0) return 1;
-                        if (cCount === 2 && hCount === 0) return 2;
-                        if (cCount === 0 && hCount === 1) return 1;
-                        if (cCount === 1 && hCount === 1) return 2;
-                        if (cCount === 2 && hCount === 1) return 3;
-                        return 4;
+                        if (cCount === 0 && hCount === 0) return 0; // ناجح صافي
+                        if (cCount === 1 && hCount === 0) return 1; // منقول بمادة
+                        if (cCount === 2 && hCount === 0) return 2; // منقول بمادتين
+                        if (cCount === 0 && hCount === 1) return 1; // منقول بمادة
+                        if (cCount === 1 && hCount === 1) return 2; // منقول بمادتين
+                        if (cCount === 2 && hCount === 1) return 3; // منقول بمادتين + مادة انسانية
+                        return 4; // راسب (يعاد أو يفصل)
                     }
 
                     let initialStatusCode = evalFailsStatus(initialCoreFails, initialHumFails);
 
-                    // الحد الأقصى للمواد الأساسية التي تنطبق عليها الرأفة هو (نصف عدد المواد الأساسية المسجل بها الطالب)
+                    // تطبيق الرأفة بحد أقصى على نصف عدد المواد الأساسية
                     let maxGraceCoreSubjectsAllowed = Math.floor(totalCoreSubjectsCount / 2);
 
                     if (allowGrace && (initialFailsCount > 0 || defaultSubjects.some(s => s.startsWith('تخلف') && subjectsBaseData[s]?.isFailing))) {
@@ -2340,7 +2337,6 @@
                               let el = eligibleForGrace[i];
                               let isHumSubj = humanitiesSubjectsKeys.includes(el.subject) || (el.subject.startsWith('تخلف') && student.scores[el.subject].isHum);
                               
-                              // التحقق من ألا يتجاوز عدد المواد الأساسية المستفيدة من الرأفة (نصف عدد المواد الأساسية)
                               if (!isHumSubj && appliedCoreCount >= maxGraceCoreSubjectsAllowed) {
                                    continue;
                               }
@@ -2360,7 +2356,10 @@
 
                          let newStatusCode = evalFailsStatus(simCoreFails, simHumFails);
 
-                         if (newStatusCode < initialStatusCode || Object.keys(tempAllocations).length > 0) {
+                         // شرط الرأفة الأساسي: يجب أن تُغيّر الحالة من راسب إلى إحدى حالات النقل المقبولة
+                         if (initialStatusCode === 4 && newStatusCode < 4) {
+                              graceAllocations = tempAllocations;
+                         } else if (initialStatusCode < 4 && newStatusCode < initialStatusCode) {
                               graceAllocations = tempAllocations;
                          } else if (initialStatusCode === 4) {
                               activeSubjUpgradePct = 0;
