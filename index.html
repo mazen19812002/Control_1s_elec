@@ -115,6 +115,25 @@
             outline: none;
         }
 
+        .score-edit-input {
+            width: 44px;
+            padding: 2px;
+            font-size: 14px;
+            text-align: center;
+            border: 2px solid #1565c0;
+            border-radius: 6px;
+            font-weight: bold;
+            background: #e3f2fd;
+            color: #0d47a1;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .score-edit-input:focus {
+            border-color: #00bcd4;
+            background: #fff;
+            box-shadow: 0 0 5px rgba(0, 188, 212, 0.5);
+        }
+
         .settings-table {
             width: 100%;
             border-collapse: collapse;
@@ -215,7 +234,7 @@
             body { background: white !important; zoom: 0.65; padding-bottom: 0 !important;}
             .container { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
             .top-controls, .drag-drop-section, .search-dropdown-container, .floating-btn, h1, .control-panels-wrapper, #importExportedArea { display: none !important; }
-            .bulk-input, .bulk-component-input, input[type="checkbox"], .cap-btn, .manual-pass-input, .status-select { display: none !important; }
+            .bulk-input, .bulk-component-input, input[type="checkbox"], .cap-btn, .manual-pass-input, .status-select, .score-edit-input { display: none !important; }
             .table-responsive { max-height: none !important; overflow: visible !important; box-shadow: none !important; margin-top: 0 !important;}
             table.main-table { width: 100% !important; table-layout: auto; border-collapse: collapse !important; display: table !important; }
             .main-table thead { display: table-header-group !important; }
@@ -1965,8 +1984,8 @@
         }
 
         function buildContinuousCell(t1Val, t2Val, totVal, evaluateHalf, passedT1, passedT2, t1InputHtml = null, t2InputHtml = null) {
-            let t1Str = passedT1 ? (t1InputHtml || `<span class="text-passed">نجح</span>`) : (t1Val !== undefined ? t1Val : '-');
-            let t2Str = passedT2 ? (t2InputHtml || `<span class="text-passed">نجح</span>`) : (t2Val !== undefined ? t2Val : '-');
+            let t1Str = passedT1 ? (t1InputHtml || `<span class="text-passed">نجح</span>`) : (t1InputHtml !== null ? t1InputHtml : (t1Val !== undefined ? t1Val : '-'));
+            let t2Str = passedT2 ? (t2InputHtml || `<span class="text-passed">نجح</span>`) : (t2InputHtml !== null ? t2InputHtml : (t2Val !== undefined ? t2Val : '-'));
             let tTot = totVal !== undefined ? totVal : '-';
             return `<div class="term-breakdown">
                         <div class="t-row">${t1Str}</div>
@@ -1977,7 +1996,7 @@
 
         function getManualInput(val, comp, term, subjIdx, stIdx, max) {
             let id = `man_in_${stIdx}_${subjIdx}_${term}_${comp}`;
-            return `<input type="number" step="0.5" id="${id}" class="manual-pass-input" style="width:35px; padding:1px; font-size:12px; text-align:center; border:1px solid #00bcd4; border-radius:4px; color:#006064; font-weight:bold; background:#e0f7fa;"
+            return `<input type="number" step="0.5" id="${id}" class="manual-pass-input" style="width:38px; padding:1px; font-size:12px; text-align:center; border:1px solid #00bcd4; border-radius:4px; color:#006064; font-weight:bold; background:#e0f7fa;"
                     value="${val !== '' ? val : ''}" max="${max}"
                     onchange="updateManualPassScore(${stIdx}, ${subjIdx}, '${term}', '${comp}', this.value, '${id}')"
                     title="الحد الأقصى: ${max}">`;
@@ -2100,10 +2119,10 @@
                         let cur2Pr = actual.passedT2 ? (parseFloat(man.t2.prac)||0) : (parseFloat(actual.t2?.prac) || 0);
                         let curTotPr = (actual.passedT1 || actual.passedT2) ? (parseFloat(man.total.prac)||0) : (parseFloat(actual.total?.prac) || 0);
 
-                        let cur1Wr = actual.passedT1 ? (parseFloat(man.t1.writ)||0) : (actual.t1?.isAbsent ? 0 : parseFloat(actual.t1?.writ) || 0);
-                        let cur2Wr = actual.passedT2 ? (parseFloat(man.t2.writ)||0) : (actual.t2?.isAbsent ? 0 : parseFloat(actual.t2?.writ) || 0);
+                        let cur1Wr = actual.passedT1 ? (parseFloat(man.t1.writ)||0) : (actual.t1?.isAbsent ? 0 : (man.t1.writ !== '' ? parseFloat(man.t1.writ)||0 : parseFloat(actual.t1?.writ) || 0));
+                        let cur2Wr = actual.passedT2 ? (parseFloat(man.t2.writ)||0) : (actual.t2?.isAbsent ? 0 : (man.t2.writ !== '' ? parseFloat(man.t2.writ)||0 : parseFloat(actual.t2?.writ) || 0));
 
-                        let curTotWr = (actual.passedT1 || actual.passedT2) ? (parseFloat(man.total.writ)||0) : (currentIsAbsent ? 0 : (isTakhlof && man.total.writ !== '' ? parseFloat(man.total.writ) || 0 : parseFloat(actual.total?.writ) || 0));
+                        let curTotWr = (actual.passedT1 || actual.passedT2) ? (parseFloat(man.total.writ)||0) : (currentIsAbsent ? 0 : (man.total.writ !== '' ? parseFloat(man.total.writ) || 0 : parseFloat(actual.total?.writ) || 0));
 
                         let valTotYw = 0, valTotPr = 0, valTotW = 0;
                         let valT1W = 0, valT2W = 0; 
@@ -2296,7 +2315,7 @@
 
                     let initialStatusCode = evalFailsStatus(initialCoreFails, initialHumFails);
 
-                    // تطبيق الرأفة بحد أقصى على نصف عدد المواد الأساسية
+                    // الحد الأقصى للمواد الأساسية التي تنطبق عليها الرأفة هو (نصف عدد المواد الأساسية)
                     let maxGraceCoreSubjectsAllowed = Math.floor(totalCoreSubjectsCount / 2);
 
                     if (allowGrace && (initialFailsCount > 0 || defaultSubjects.some(s => s.startsWith('تخلف') && subjectsBaseData[s]?.isFailing))) {
@@ -2356,7 +2375,7 @@
 
                          let newStatusCode = evalFailsStatus(simCoreFails, simHumFails);
 
-                         // شرط الرأفة الأساسي: يجب أن تُغيّر الحالة من راسب إلى إحدى حالات النقل المقبولة
+                         // تطبيق الرأفة بشرط نقل الحالة من راسب إلى منقول أو تقليل مواد الرسوب للنقل
                          if (initialStatusCode === 4 && newStatusCode < 4) {
                               graceAllocations = tempAllocations;
                          } else if (initialStatusCode < 4 && newStatusCode < initialStatusCode) {
@@ -2452,6 +2471,11 @@
                         let dispT2w = actual.passedT2 ? man.t2.writ : (actual.t2?.isAbsent ? '<span style="color:#000;">غ</span>' : actual.t2?.writ);
                         let dispTotW = (actual.passedT1 || actual.passedT2) ? man.total.writ : (currentIsAbsent ? '<span style="color:#000;">غ</span>' : actual.total?.writ);
 
+                        // تجهيز مربعات التعديل التفاعلي للدرجات لغير المستجدين والمواد العادية
+                        let inpT1W = (!isFreshman && !actual.passedT1) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t1.writ !== '' ? man.t1.writ : (actual.t1?.writ !== undefined && actual.t1?.writ !== '-' ? actual.t1.writ : '')}" placeholder="${actual.t1?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'writ', this.value)">` : null;
+                        let inpT2W = (!isFreshman && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t2.writ !== '' ? man.t2.writ : (actual.t2?.writ !== undefined && actual.t2?.writ !== '-' ? actual.t2.writ : '')}" placeholder="${actual.t2?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'writ', this.value)">` : null;
+                        let inpTotW = (!isFreshman && !actual.passedT1 && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.writ !== '' ? man.total.writ : (actual.total?.writ !== undefined ? actual.total.writ : '')}" placeholder="${actual.total?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value)">` : null;
+
                         if (isForsa || isMokayed) {
                             valTotYw = 0; dispTotYw = '-'; 
                             valT1Yw = 0; dispT1Yw = '-';
@@ -2512,16 +2536,12 @@
                                 tdPrac.innerHTML = (actual.passedT1 || actual.passedT2) ? inpTotPr : ((dispTotPr !== undefined && dispTotPr !== '-') ? dispTotPr : '-');
                             }
                         }
-                        
-                        let inpT1W = actual.passedT1 ? getManualInput(man.t1.writ, 'writ', 't1', subjectIndex, studentIndex, actual.t1?.maxWr||(fbLocal.wr/2)) : null;
-                        let inpT2W = actual.passedT2 ? getManualInput(man.t2.writ, 'writ', 't2', subjectIndex, studentIndex, actual.t2?.maxWr||(fbLocal.wr/2)) : null;
-                        let inpTotW = (actual.passedT1 || actual.passedT2) ? getManualInput(man.total.writ, 'writ', 'total', subjectIndex, studentIndex, maxs?.written||fbLocal.wr) : null;
 
                         if (!isTakhlof) {
                             if(isContinuous) {
                                 tdWrit.innerHTML = buildContinuousCell(dispT1w, dispT2w, dispTotW, false, actual.passedT1, actual.passedT2, inpT1W, inpT2W);
                             } else {
-                                tdWrit.innerHTML = (actual.passedT1 || actual.passedT2) ? inpTotW : (currentIsAbsent ? '<span style="color:#000;">غ</span>' : ((dispTotW !== undefined && dispTotW !== '-') ? dispTotW : '-'));
+                                tdWrit.innerHTML = (actual.passedT1 || actual.passedT2) ? (getManualInput(man.total.writ, 'writ', 'total', subjectIndex, studentIndex, maxs?.written||fbLocal.wr)) : (inpTotW || (currentIsAbsent ? '<span style="color:#000;">غ</span>' : ((dispTotW !== undefined && dispTotW !== '-') ? dispTotW : '-')));
                             }
                         }
 
@@ -2568,7 +2588,7 @@
                             let currentMax = maxs?.written || 100;
                             let currentVal = man.total.writ !== '' ? man.total.writ : (currentIsAbsent ? 'غ' : actual.total.writ);
                             let valInpId = `takh_val_${studentIndex}_${subjectIndex}`;
-                            let valInp = `<input type="number" step="0.5" id="${valInpId}" class="manual-pass-input" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #00bcd4; border-radius:4px; font-weight:bold; background:#e0f7fa; color:#006064;" value="${currentVal}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value, '${valInpId}')">`;
+                            let valInp = `<input type="number" step="0.5" id="${valInpId}" class="score-edit-input" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #00bcd4; border-radius:4px; font-weight:bold; background:#e0f7fa; color:#006064;" value="${currentVal}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value, '${valInpId}')">`;
                             let maxInp = `<input type="number" id="max_${studentIndex}_${subjectIndex}" step="1" min="1" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #e67e22; border-radius:4px; font-weight:bold; background:#fff3e0; color:#d35400;" value="${currentMax}" onchange="updateTakhMax(${studentIndex}, '${subject}', this.value)">`;
                             let humCheck = `<label style="font-size:11px; color:#555; display:flex; align-items:center; justify-content:center; gap:4px; margin-top:5px; font-weight:bold; cursor:pointer;"><input type="checkbox" onchange="updateTakhHum(${studentIndex}, '${subject}', this.checked)" ${actual.isHum ? 'checked' : ''}> مادة إنسانية</label>`;
                             
