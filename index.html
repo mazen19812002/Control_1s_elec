@@ -118,20 +118,20 @@
         .score-edit-input {
             width: 44px;
             padding: 2px;
-            font-size: 14px;
+            font-size: 13px;
             text-align: center;
-            border: 2px solid #1565c0;
-            border-radius: 6px;
+            border: 1.5px solid #00bcd4;
+            border-radius: 5px;
             font-weight: bold;
-            background: #e3f2fd;
-            color: #0d47a1;
+            background: #e0f7fa;
+            color: #006064;
             outline: none;
             transition: all 0.2s;
         }
         .score-edit-input:focus {
-            border-color: #00bcd4;
+            border-color: #00838f;
             background: #fff;
-            box-shadow: 0 0 5px rgba(0, 188, 212, 0.5);
+            box-shadow: 0 0 5px rgba(0, 188, 212, 0.6);
         }
 
         .settings-table {
@@ -219,6 +219,21 @@
         .cap-btn.active { color: #d32f2f; filter: drop-shadow(0 0 2px rgba(211,47,47,0.5));}
         .cap-btn.inactive { color: #9e9e9e; filter: grayscale(100%); opacity: 0.5;}
         
+        .discount-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px;
+            font-size: 14px;
+            vertical-align: middle;
+            transition: transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 4px;
+        }
+        .discount-btn:hover { transform: scale(1.2); }
+
         .mokayed-tooltip { position: relative; cursor: help; display: inline-flex; flex-direction: column; align-items: center; }
         .mokayed-tooltip .tooltip-text { visibility: hidden; background-color: #fce4ec; color: #880e4f; text-align: center; border-radius: 6px; padding: 6px 12px; position: absolute; z-index: 100; bottom: 110%; left: 50%; transform: translateX(-50%); box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-size: 14px; font-weight: bold; white-space: nowrap; border: 1px solid #f8bbd0; line-height: 1.5; }
         .mokayed-tooltip .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: #f8bbd0 transparent transparent transparent; }
@@ -234,7 +249,7 @@
             body { background: white !important; zoom: 0.65; padding-bottom: 0 !important;}
             .container { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
             .top-controls, .drag-drop-section, .search-dropdown-container, .floating-btn, h1, .control-panels-wrapper, #importExportedArea { display: none !important; }
-            .bulk-input, .bulk-component-input, input[type="checkbox"], .cap-btn, .manual-pass-input, .status-select, .score-edit-input { display: none !important; }
+            .bulk-input, .bulk-component-input, input[type="checkbox"], .cap-btn, .discount-btn, .manual-pass-input, .status-select, .score-edit-input { display: none !important; }
             .table-responsive { max-height: none !important; overflow: visible !important; box-shadow: none !important; margin-top: 0 !important;}
             table.main-table { width: 100% !important; table-layout: auto; border-collapse: collapse !important; display: table !important; }
             .main-table thead { display: table-header-group !important; }
@@ -761,6 +776,15 @@
             }
         }
 
+        function toggleStudentDiscount(stIdx, subject) {
+            let st = currentRenderedData[stIdx];
+            if (st) {
+                st._subjectDiscounts = st._subjectDiscounts || {};
+                st._subjectDiscounts[subject] = !st._subjectDiscounts[subject];
+                triggerReRender();
+            }
+        }
+
         function sortStudents(a, b) {
             let numA = parseInt(a.seatNumber);
             let numB = parseInt(b.seatNumber);
@@ -1139,10 +1163,12 @@
                 st.scores[sub].manual[term][comp] = val;
                 st.scores[sub].hasRecord = true; 
                 triggerReRender();
-                setTimeout(() => {
-                    let el = document.getElementById(id);
-                    if(el) { el.focus(); el.select(); }
-                }, 50);
+                if (id) {
+                    setTimeout(() => {
+                        let el = document.getElementById(id);
+                        if(el) { el.focus(); el.select(); }
+                    }, 50);
+                }
             }
         }
 
@@ -1410,7 +1436,7 @@
                     studentsDatabase[primaryLookupKey] = {
                         seatNumber: seatNo, name: studentName, status: studentStatus, 
                         scores: {}, maxScores: {}, _gradesForStats: {}, _displayData: {}, 
-                        _overallStatCategory: '', _capRepeater: {}, _processedScores: {}
+                        _overallStatCategory: '', _capRepeater: {}, _subjectDiscounts: {}, _processedScores: {}
                     };
                     defaultSubjects.forEach(sub => {
                         studentsDatabase[primaryLookupKey].scores[sub] = {
@@ -1580,7 +1606,7 @@
 
                 if (!studentsDatabase[primaryLookupKey]) {
                     studentsDatabase[primaryLookupKey] = {
-                        seatNumber: seatNo, name: studentName, status: studentStatus, scores: {}, maxScores: {}, _gradesForStats: {}, _displayData: {}, _overallStatCategory: '', _capRepeater: {}, _processedScores: {}
+                        seatNumber: seatNo, name: studentName, status: studentStatus, scores: {}, maxScores: {}, _gradesForStats: {}, _displayData: {}, _overallStatCategory: '', _capRepeater: {}, _subjectDiscounts: {}, _processedScores: {}
                     };
                     defaultSubjects.forEach(sub => {
                         studentsDatabase[primaryLookupKey].scores[sub] = {
@@ -1996,7 +2022,7 @@
 
         function getManualInput(val, comp, term, subjIdx, stIdx, max) {
             let id = `man_in_${stIdx}_${subjIdx}_${term}_${comp}`;
-            return `<input type="number" step="0.5" id="${id}" class="manual-pass-input" style="width:38px; padding:1px; font-size:12px; text-align:center; border:1px solid #00bcd4; border-radius:4px; color:#006064; font-weight:bold; background:#e0f7fa;"
+            return `<input type="number" step="0.5" id="${id}" class="manual-pass-input score-edit-input" style="width:38px; padding:1px; font-size:12px; text-align:center;"
                     value="${val !== '' ? val : ''}" max="${max}"
                     onchange="updateManualPassScore(${stIdx}, ${subjIdx}, '${term}', '${comp}', this.value, '${id}')"
                     title="الحد الأقصى: ${max}">`;
@@ -2056,7 +2082,6 @@
                     let activeGraceBskPct = allowGrace ? generalGraceBasketPct : 0;
                     let activeSubjUpgradePct = currentSubjectUpgradeLimitPct;
 
-                    // --- PASS 1: Calculate Base Scores, Fails, and Max Totals ---
                     let subjectsBaseData = {};
                     let initialHumFails = 0;
                     let initialCoreFails = 0;
@@ -2111,13 +2136,13 @@
 
                         let man = actual.manual || { t1:{yw:'', prac:'', writ:''}, t2:{yw:'', prac:'', writ:''}, total:{yw:'', prac:'', writ:''} };
 
-                        let cur1Yw = actual.passedT1 ? (parseFloat(man.t1.yw)||0) : (parseFloat(actual.t1?.yw) || 0);
-                        let cur2Yw = actual.passedT2 ? (parseFloat(man.t2.yw)||0) : (parseFloat(actual.t2?.yw) || 0);
-                        let curTotYw = (actual.passedT1 || actual.passedT2) ? (parseFloat(man.total.yw)||0) : (parseFloat(actual.total?.yw) || 0);
+                        let cur1Yw = actual.passedT1 ? (parseFloat(man.t1.yw)||0) : (man.t1.yw !== '' ? parseFloat(man.t1.yw)||0 : parseFloat(actual.t1?.yw) || 0);
+                        let cur2Yw = actual.passedT2 ? (parseFloat(man.t2.yw)||0) : (man.t2.yw !== '' ? parseFloat(man.t2.yw)||0 : parseFloat(actual.t2?.yw) || 0);
+                        let curTotYw = (actual.passedT1 || actual.passedT2) ? (parseFloat(man.total.yw)||0) : (man.total.yw !== '' ? parseFloat(man.total.yw)||0 : parseFloat(actual.total?.yw) || 0);
 
-                        let cur1Pr = actual.passedT1 ? (parseFloat(man.t1.prac)||0) : (parseFloat(actual.t1?.prac) || 0);
-                        let cur2Pr = actual.passedT2 ? (parseFloat(man.t2.prac)||0) : (parseFloat(actual.t2?.prac) || 0);
-                        let curTotPr = (actual.passedT1 || actual.passedT2) ? (parseFloat(man.total.prac)||0) : (parseFloat(actual.total?.prac) || 0);
+                        let cur1Pr = actual.passedT1 ? (parseFloat(man.t1.prac)||0) : (man.t1.prac !== '' ? parseFloat(man.t1.prac)||0 : parseFloat(actual.t1?.prac) || 0);
+                        let cur2Pr = actual.passedT2 ? (parseFloat(man.t2.prac)||0) : (man.t2.prac !== '' ? parseFloat(man.t2.prac)||0 : parseFloat(actual.t2?.prac) || 0);
+                        let curTotPr = (actual.passedT1 || actual.passedT2) ? (parseFloat(man.total.prac)||0) : (man.total.prac !== '' ? parseFloat(man.total.prac)||0 : parseFloat(actual.total?.prac) || 0);
 
                         let cur1Wr = actual.passedT1 ? (parseFloat(man.t1.writ)||0) : (actual.t1?.isAbsent ? 0 : (man.t1.writ !== '' ? parseFloat(man.t1.writ)||0 : parseFloat(actual.t1?.writ) || 0));
                         let cur2Wr = actual.passedT2 ? (parseFloat(man.t2.writ)||0) : (actual.t2?.isAbsent ? 0 : (man.t2.writ !== '' ? parseFloat(man.t2.writ)||0 : parseFloat(actual.t2?.writ) || 0));
@@ -2275,6 +2300,12 @@
                             if (finalScore > capLimit) { finalScore = capLimit; }
                         }
 
+                        // تطبيق تخفيض الدرجات عبر الزر الجديد
+                        let hasDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
+                        if (hasDiscount) {
+                            finalScore = finalScore * 0.5; // أو تخفيض بنسبة النصف كمثال تفاعلي
+                        }
+
                         let percentage = maxScore > 0 ? (finalScore / maxScore) * 100 : 0;
                         let isBylawFail = !isTakhlof && (currentMaxWrit > 0 && valTotW < (currentMaxWrit * 0.30));
                         let isFailing = false;
@@ -2299,23 +2330,20 @@
                         };
                     });
 
-                    // --- PASS 2: Grace Allocation Engine ---
                     let initialFailsCount = initialCoreFails + initialHumFails;
                     let graceAllocations = {};
 
                     function evalFailsStatus(cCount, hCount) {
-                        if (cCount === 0 && hCount === 0) return 0; // ناجح صافي
-                        if (cCount === 1 && hCount === 0) return 1; // منقول بمادة
-                        if (cCount === 2 && hCount === 0) return 2; // منقول بمادتين
-                        if (cCount === 0 && hCount === 1) return 1; // منقول بمادة
-                        if (cCount === 1 && hCount === 1) return 2; // منقول بمادتين
-                        if (cCount === 2 && hCount === 1) return 3; // منقول بمادتين + مادة انسانية
-                        return 4; // راسب (يعاد أو يفصل)
+                        if (cCount === 0 && hCount === 0) return 0; 
+                        if (cCount === 1 && hCount === 0) return 1; 
+                        if (cCount === 2 && hCount === 0) return 2; 
+                        if (cCount === 0 && hCount === 1) return 1; 
+                        if (cCount === 1 && hCount === 1) return 2; 
+                        if (cCount === 2 && hCount === 1) return 3; 
+                        return 4; 
                     }
 
                     let initialStatusCode = evalFailsStatus(initialCoreFails, initialHumFails);
-
-                    // الحد الأقصى للمواد الأساسية التي تنطبق عليها الرأفة هو (نصف عدد المواد الأساسية)
                     let maxGraceCoreSubjectsAllowed = Math.floor(totalCoreSubjectsCount / 2);
 
                     if (allowGrace && (initialFailsCount > 0 || defaultSubjects.some(s => s.startsWith('تخلف') && subjectsBaseData[s]?.isFailing))) {
@@ -2375,7 +2403,6 @@
 
                          let newStatusCode = evalFailsStatus(simCoreFails, simHumFails);
 
-                         // تطبيق الرأفة بشرط نقل الحالة من راسب إلى منقول أو تقليل مواد الرسوب للنقل
                          if (initialStatusCode === 4 && newStatusCode < 4) {
                               graceAllocations = tempAllocations;
                          } else if (initialStatusCode < 4 && newStatusCode < initialStatusCode) {
@@ -2387,7 +2414,6 @@
                          activeSubjUpgradePct = 0;
                     }
 
-                    // --- PASS 3: Generate HTML & Apply Final Logic ---
                     defaultSubjects.forEach((subject, subjectIndex) => {
                         let actual = student?.scores?.[subject] || {}; 
                         let maxs = student?.maxScores?.[subject] || {};
@@ -2411,6 +2437,16 @@
                         let tdTotal = document.createElement('td'); tdTotal.className = `subject-total ${subCls}`; 
                         let tdGrade = document.createElement('td'); tdGrade.className = `subject-grade ${subCls}`;
 
+                        // إضافة زر التخفيض بجانب جميع مواد الطلاب الغير المستجدين (مثلث أخضر رأسة لأعلى يقلب إلى مثلث أحمر رأسه لأسفل عند التفعيل)
+                        let discountBtnHtml = '';
+                        if (!isFreshman) {
+                            let isDiscountsActive = student._subjectDiscounts && student._subjectDiscounts[subject];
+                            let triangleSymbol = isDiscountsActive ? '▼' : '▲';
+                            let triangleColor = isDiscountsActive ? '#d32f2f' : '#2e7d32';
+                            let titleText = isDiscountsActive ? 'إلغاء التخفيض' : 'تطبيق التخفيض';
+                            discountBtnHtml = `<button class="discount-btn" onclick="toggleStudentDiscount(${studentIndex}, '${subject}')" title="${titleText}"><span style="color: ${triangleColor}; font-size: 14px;">${triangleSymbol}</span></button>`;
+                        }
+
                         let capBtnHtml = '';
                         if ((applyAtRiskRules || isTakhlof) && baseObj.finalScore > 0) {  
                               let btnClass = baseObj.isCapped ? 'cap-btn active' : 'cap-btn inactive';  
@@ -2423,11 +2459,11 @@
                             if (isTakhlof) {
                                 let currentMax = maxs?.written || 100;
                                 let valInpId = `takh_val_${studentIndex}_${subjectIndex}`;
-                                let valInp = `<input type="number" step="0.5" id="${valInpId}" class="manual-pass-input" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #00bcd4; border-radius:4px; font-weight:bold; background:#e0f7fa; color:#006064;" placeholder="-" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value, '${valInpId}')">`;
+                                let valInp = `<input type="number" step="0.5" id="${valInpId}" class="score-edit-input" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #00bcd4; border-radius:4px; font-weight:bold; background:#e0f7fa; color:#006064;" placeholder="-" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value, '${valInpId}')">`;
                                 let maxInp = `<input type="number" id="max_${studentIndex}_${subjectIndex}" step="1" min="1" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #e67e22; border-radius:4px; font-weight:bold; background:#fff3e0; color:#d35400;" value="${currentMax}" onchange="updateTakhMax(${studentIndex}, '${subject}', this.value)">`;
                                 let humCheck = `<label style="font-size:11px; color:#555; display:flex; align-items:center; justify-content:center; gap:4px; margin-top:5px; font-weight:bold; cursor:pointer;"><input type="checkbox" onchange="updateTakhHum(${studentIndex}, '${subject}', this.checked)" ${actual.isHum ? 'checked' : ''}> مادة إنسانية</label>`;
                                 
-                                tdTotal.innerHTML = takhNameInputHtml + `<div style="display:inline-flex; flex-direction:column; align-items:center;"><div class="fraction-box"><div class="fraction-num" style="display:flex; align-items:center; gap:3px;">${valInp} ${capBtnHtml}</div><div class="fraction-den">${maxInp}</div></div>${humCheck}</div>`;
+                                tdTotal.innerHTML = takhNameInputHtml + `<div style="display:inline-flex; flex-direction:column; align-items:center;"><div class="fraction-box"><div class="fraction-num" style="display:flex; align-items:center; gap:3px;">${valInp} ${capBtnHtml} ${discountBtnHtml}</div><div class="fraction-den">${maxInp}</div></div>${humCheck}</div>`;
                                 tdGrade.innerHTML = `<span style="color:#999;">-</span>`;
                                 tr.appendChild(tdTotal); tr.appendChild(tdGrade);
                             } else {
@@ -2438,7 +2474,7 @@
                                 tdYW.innerHTML = inpTotYw;
                                 if(tdPrac) tdPrac.innerHTML = inpTotPr;
                                 tdWrit.innerHTML = inpTotW;
-                                tdTotal.innerHTML = `<div style="display:flex; align-items:center; justify-content:center;"><span style="color:#999;">-</span></div>`;
+                                tdTotal.innerHTML = `<div style="display:flex; align-items:center; justify-content:center;"><span style="color:#999;">-</span> ${discountBtnHtml}</div>`;
                                 tdGrade.innerHTML = `<span style="color:#999;">-</span>`;
                                 
                                 tr.appendChild(tdYW); if(tdPrac) tr.appendChild(tdPrac); tr.appendChild(tdWrit); tr.appendChild(tdTotal); tr.appendChild(tdGrade);
@@ -2471,10 +2507,17 @@
                         let dispT2w = actual.passedT2 ? man.t2.writ : (actual.t2?.isAbsent ? '<span style="color:#000;">غ</span>' : actual.t2?.writ);
                         let dispTotW = (actual.passedT1 || actual.passedT2) ? man.total.writ : (currentIsAbsent ? '<span style="color:#000;">غ</span>' : actual.total?.writ);
 
-                        // تجهيز مربعات التعديل التفاعلي للدرجات لغير المستجدين والمواد العادية
-                        let inpT1W = (!isFreshman && !actual.passedT1) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t1.writ !== '' ? man.t1.writ : (actual.t1?.writ !== undefined && actual.t1?.writ !== '-' ? actual.t1.writ : '')}" placeholder="${actual.t1?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'writ', this.value)">` : null;
-                        let inpT2W = (!isFreshman && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t2.writ !== '' ? man.t2.writ : (actual.t2?.writ !== undefined && actual.t2?.writ !== '-' ? actual.t2.writ : '')}" placeholder="${actual.t2?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'writ', this.value)">` : null;
-                        let inpTotW = (!isFreshman && !actual.passedT1 && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.writ !== '' ? man.total.writ : (actual.total?.writ !== undefined ? actual.total.writ : '')}" placeholder="${actual.total?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value)">` : null;
+                        let inpT1Yw = (!isFreshman && !actual.passedT1) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t1.yw !== '' ? man.t1.yw : (actual.t1?.yw !== undefined && actual.t1?.yw !== '-' ? actual.t1.yw : '')}" placeholder="${actual.t1?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'yw', this.value)">` : null;
+                        let inpT2Yw = (!isFreshman && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t2.yw !== '' ? man.t2.yw : (actual.t2?.yw !== undefined && actual.t2?.yw !== '-' ? actual.t2.yw : '')}" placeholder="${actual.t2?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'yw', this.value)">` : null;
+                        let inpTotYw = (!isFreshman && !actual.passedT1 && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.yw !== '' ? man.total.yw : (actual.total?.yw !== undefined ? actual.total.yw : '')}" placeholder="${actual.total?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'yw', this.value)">` : null;
+
+                        let inpT1Pr = (!isFreshman && !actual.passedT1) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t1.prac !== '' ? man.t1.prac : (actual.t1?.prac !== undefined && actual.t1?.prac !== '-' ? actual.t1.prac : '')}" placeholder="${actual.t1?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'prac', this.value)">` : null;
+                        let inpT2Pr = (!isFreshman && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t2.prac !== '' ? man.t2.prac : (actual.t2?.prac !== undefined && actual.t2?.prac !== '-' ? actual.t2.prac : '')}" placeholder="${actual.t2?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'prac', this.value)">` : null;
+                        let inpTotPr = (!isFreshman && !actual.passedT1 && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.prac !== '' ? man.total.prac : (actual.total?.prac !== undefined ? actual.total.prac : '')}" placeholder="${actual.total?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'prac', this.value)">` : null;
+
+                        let inpT1W = (!isFreshman && !actual.passedT1 && !actual.t1?.isAbsent) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t1.writ !== '' ? man.t1.writ : (actual.t1?.writ !== undefined && actual.t1?.writ !== '-' ? actual.t1.writ : '')}" placeholder="${actual.t1?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'writ', this.value)">` : null;
+                        let inpT2W = (!isFreshman && !actual.passedT2 && !actual.t2?.isAbsent) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t2.writ !== '' ? man.t2.writ : (actual.t2?.writ !== undefined && actual.t2?.writ !== '-' ? actual.t2.writ : '')}" placeholder="${actual.t2?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'writ', this.value)">` : null;
+                        let inpTotW = (!isFreshman && !actual.passedT1 && !actual.passedT2 && !currentIsAbsent) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.writ !== '' ? man.total.writ : (actual.total?.writ !== undefined ? actual.total.writ : '')}" placeholder="${actual.total?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value)">` : null;
 
                         if (isForsa || isMokayed) {
                             valTotYw = 0; dispTotYw = '-'; 
@@ -2513,27 +2556,19 @@
                             }
                         }
 
-                        let inpT1Yw = actual.passedT1 ? getManualInput(man.t1.yw, 'yw', 't1', subjectIndex, studentIndex, actual.t1?.maxYW||(fbLocal.yw/2)) : null;
-                        let inpT2Yw = actual.passedT2 ? getManualInput(man.t2.yw, 'yw', 't2', subjectIndex, studentIndex, actual.t2?.maxYW||(fbLocal.yw/2)) : null;
-                        let inpTotYw = (actual.passedT1 || actual.passedT2) ? getManualInput(man.total.yw, 'yw', 'total', subjectIndex, studentIndex, maxs?.yearWork||fbLocal.yw) : null;
-
                         if (!isTakhlof) {
                             if(isContinuous) {
                                 tdYW.innerHTML = buildContinuousCell(dispT1Yw, dispT2Yw, dispTotYw, false, actual.passedT1, actual.passedT2, inpT1Yw, inpT2Yw);
                             } else {
-                                tdYW.innerHTML = (actual.passedT1 || actual.passedT2) ? inpTotYw : ((dispTotYw !== undefined && dispTotYw !== '-') ? dispTotYw : '-');
+                                tdYW.innerHTML = (actual.passedT1 || actual.passedT2) ? getManualInput(man.total.yw, 'yw', 'total', subjectIndex, studentIndex, maxs?.yearWork||fbLocal.yw) : (inpTotYw || ((dispTotYw !== undefined && dispTotYw !== '-') ? dispTotYw : '-'));
                             }
                         }
 
                         if (!isTakhlof && hasPractical) {
-                            let inpT1Pr = actual.passedT1 ? getManualInput(man.t1.prac, 'prac', 't1', subjectIndex, studentIndex, actual.t1?.maxPrac||(fbLocal.pr/2)) : null;
-                            let inpT2Pr = actual.passedT2 ? getManualInput(man.t2.prac, 'prac', 't2', subjectIndex, studentIndex, actual.t2?.maxPrac||(fbLocal.pr/2)) : null;
-                            let inpTotPr = (actual.passedT1 || actual.passedT2) ? getManualInput(man.total.prac, 'prac', 'total', subjectIndex, studentIndex, maxs?.practical||fbLocal.pr) : null;
-                            
                             if(isContinuous) {
                                 tdPrac.innerHTML = buildContinuousCell(dispT1Pr, dispT2Pr, dispTotPr, false, actual.passedT1, actual.passedT2, inpT1Pr, inpT2Pr);
                             } else {
-                                tdPrac.innerHTML = (actual.passedT1 || actual.passedT2) ? inpTotPr : ((dispTotPr !== undefined && dispTotPr !== '-') ? dispTotPr : '-');
+                                tdPrac.innerHTML = (actual.passedT1 || actual.passedT2) ? getManualInput(man.total.prac, 'prac', 'total', subjectIndex, studentIndex, maxs?.practical||fbLocal.pr) : (inpTotPr || ((dispTotPr !== undefined && dispTotPr !== '-') ? dispTotPr : '-'));
                             }
                         }
 
@@ -2555,11 +2590,6 @@
 
                         let subjectIsFailed = false;
                         let graceAdded = 0; let upgradeAdded = 0;
-                        let isSpecialCalculated = (isMokayed || isForsa) && !currentIsAbsent && !passedStatusText;
-                        let rawWrittenForTooltip = valTotW;
-                        if (isForsa && !currentIsAbsent) rawWrittenForTooltip = valTotPr + valTotW;
-                        let scaledMokayedScore = finalScore;
-                        
                         let wasActuallyCapped = false;
                         
                         let uncappedScore = finalScore;
@@ -2628,7 +2658,7 @@
                                 }
                             }
                             
-                            displayScoreHTML = `<div style="display:inline-flex; flex-direction:column; align-items:center;"><div class="fraction-box"><div class="fraction-num" style="display:flex; align-items:center; justify-content:center; gap:3px;">${valInpHTML} ${capBtnHtml}</div><div class="fraction-den">${maxInp}</div></div>${humCheck}</div>`;
+                            displayScoreHTML = `<div style="display:inline-flex; flex-direction:column; align-items:center;"><div class="fraction-box"><div class="fraction-num" style="display:flex; align-items:center; justify-content:center; gap:3px;">${valInpHTML} ${capBtnHtml} ${discountBtnHtml}</div><div class="fraction-den">${maxInp}</div></div>${humCheck}</div>`;
                             
                         } else {
                             baseScoreStr = finalScore;
@@ -2730,7 +2760,7 @@
                             takhNameInputHtml = `<input type="text" class="takh-name-input" placeholder="اسم المادة" value="${currentTakhName}" onchange="updateTakhName(${studentIndex}, '${subject}', this.value)" style="width: 90%; max-width:80px; font-size: 11px; text-align: center; margin-bottom: 4px; border: 1px solid #00bcd4; border-radius: 4px; color: #004d40; background: #e0f7fa; font-weight: bold; display: block; margin-left: auto; margin-right: auto;">`;
                         }
                         
-                        let pureTotalHtml = isTakhlof ? displayScoreHTML : `<div style="display:flex; align-items:center; justify-content:space-between; gap:5px;"><span></span><span>${displayScoreHTML}</span>${capBtnHtml}</div>`;
+                        let pureTotalHtml = isTakhlof ? displayScoreHTML : `<div style="display:flex; align-items:center; justify-content:space-between; gap:5px;"><span>${discountBtnHtml}</span><span>${displayScoreHTML}</span>${capBtnHtml}</div>`;
                         tdTotal.innerHTML = takhNameInputHtml + pureTotalHtml; 
                         tdGrade.innerHTML = displayGrade;
 
