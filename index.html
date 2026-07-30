@@ -1186,8 +1186,6 @@
                         let maxLimit = 100;
                         let ms = st.maxScores[sub];
                         let fb = getSubjectFallbackMaxes(sub);
-                        let isCont = dynamicContinuousSubjects.includes(sub);
-                        let hasPrac = practicalSubjectsKeys.includes(sub);
 
                         if (comp === 'writ') {
                             if (term === 't1' || term === 't2') maxLimit = st.scores[sub][term]?.maxWr || (fb.wr / 2);
@@ -1662,7 +1660,7 @@
                             t1: { yw: '-', prac: '-', writ: '-', maxTot: 0, maxWr: 0, maxYW: 0, maxPrac: 0, isAbsent: false },
                             t2: { yw: '-', prac: '-', writ: '-', maxTot: 0, maxWr: 0, maxYW: 0, maxPrac: 0, isAbsent: false },
                             total: { yw: 0, prac: 0, writ: 0, tot: 0 },
-                            manual: { t1:{yw:'', prac:'', writ:''}, t2:{yw:'', prac:'', writ:''}, total:{yw:'', prac:'', writ:''} },
+                            manual: { t1:{yw:'', prac:'', writ:''}, t2:{yw:'', prac:'', writ:''} },
                             passedT1: false, passedT2: false, isAbsent: false, absentTerms: 0, totalTerms: 0
                         };
                         studentsDatabase[primaryLookupKey].maxScores[sub] = { yearWork: 0, practical: 0, written: 0, finalTotal: 0 };
@@ -2694,7 +2692,7 @@
                         let displayScoreHTML;
                         
                         if (isTakhlof) {
-                            let currentMax = maxs?.written || 100;
+                            let currentMax = maxs?.written || maxs?.finalTotal || customSubjectMaxes[subject] || 100;
                             let currentVal = man.total.writ !== '' ? man.total.writ : (currentIsAbsent ? 'غ' : actual.total.writ);
                             let valInpId = `takh_val_${studentIndex}_${subjectIndex}`;
                             let valInp = `<input type="number" step="0.5" id="${valInpId}" class="score-edit-input" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #00bcd4; border-radius:4px; font-weight:bold; background:#e0f7fa; color:#006064;" value="${currentVal}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value, '${valInpId}')">`;
@@ -2811,8 +2809,11 @@
                                     
                                     if (upgradeAdded === 0 && graceAdded === 0) {
                                         if (wasActuallyCapped) {
+                                            let currentCapGradeInfo = getEgyptianGrade((finalScore / maxScore) * 100);
                                             displayScoreHTML = `<span class="cap-blue-circle-badge" title="الدرجة بعد التخفيض">${baseScoreStr}</span>`;
-                                            tdGrade.className = `subject-grade ${subCls} cap-grade`;
+                                            displayGrade = currentCapGradeInfo.symbol;
+                                            tdGrade.className = `subject-grade ${subCls} ${currentCapGradeInfo.cssClass} cap-grade`;
+                                            internalStatsGrade = currentCapGradeInfo.text;
                                         } else {
                                             internalStatsGrade = gradeInfo.text;
                                         }
