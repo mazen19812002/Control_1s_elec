@@ -776,11 +776,12 @@
             }
         }
 
-        function toggleStudentDiscount(stIdx, subject) {
+        function toggleStudentDiscount(stIdx, subject, targetKey) {
             let st = currentRenderedData[stIdx];
             if (st) {
                 st._subjectDiscounts = st._subjectDiscounts || {};
-                st._subjectDiscounts[subject] = !st._subjectDiscounts[subject];
+                let key = targetKey ? `${subject}_${targetKey}` : subject;
+                st._subjectDiscounts[key] = !st._subjectDiscounts[key];
                 triggerReRender();
             }
         }
@@ -2010,8 +2011,8 @@
         }
 
         function buildContinuousCell(t1Val, t2Val, totVal, evaluateHalf, passedT1, passedT2, t1InputHtml = null, t2InputHtml = null) {
-            let t1Str = passedT1 ? (t1InputHtml || `<span class="text-passed">نجح</span>`) : (t1InputHtml !== null ? t1InputHtml : (t1Val !== undefined ? t1Val : '-'));
-            let t2Str = passedT2 ? (t2InputHtml || `<span class="text-passed">نجح</span>`) : (t2InputHtml !== null ? t2InputHtml : (t2Val !== undefined ? t2Val : '-'));
+            let t1Str = t1InputHtml !== null ? t1InputHtml : (t1Val !== undefined ? t1Val : '-');
+            let t2Str = t2InputHtml !== null ? t2InputHtml : (t2Val !== undefined ? t2Val : '-');
             let tTot = totVal !== undefined ? totVal : '-';
             return `<div class="term-breakdown">
                         <div class="t-row">${t1Str}</div>
@@ -2136,18 +2137,18 @@
 
                         let man = actual.manual || { t1:{yw:'', prac:'', writ:''}, t2:{yw:'', prac:'', writ:''}, total:{yw:'', prac:'', writ:''} };
 
-                        let cur1Yw = actual.passedT1 ? (parseFloat(man.t1.yw)||0) : (man.t1.yw !== '' ? parseFloat(man.t1.yw)||0 : parseFloat(actual.t1?.yw) || 0);
-                        let cur2Yw = actual.passedT2 ? (parseFloat(man.t2.yw)||0) : (man.t2.yw !== '' ? parseFloat(man.t2.yw)||0 : parseFloat(actual.t2?.yw) || 0);
-                        let curTotYw = (actual.passedT1 || actual.passedT2) ? (parseFloat(man.total.yw)||0) : (man.total.yw !== '' ? parseFloat(man.total.yw)||0 : parseFloat(actual.total?.yw) || 0);
+                        let cur1Yw = (man.t1.yw !== '') ? parseFloat(man.t1.yw)||0 : parseFloat(actual.t1?.yw) || 0;
+                        let cur2Yw = (man.t2.yw !== '') ? parseFloat(man.t2.yw)||0 : parseFloat(actual.t2?.yw) || 0;
+                        let curTotYw = (man.total.yw !== '') ? parseFloat(man.total.yw)||0 : parseFloat(actual.total?.yw) || 0;
 
-                        let cur1Pr = actual.passedT1 ? (parseFloat(man.t1.prac)||0) : (man.t1.prac !== '' ? parseFloat(man.t1.prac)||0 : parseFloat(actual.t1?.prac) || 0);
-                        let cur2Pr = actual.passedT2 ? (parseFloat(man.t2.prac)||0) : (man.t2.prac !== '' ? parseFloat(man.t2.prac)||0 : parseFloat(actual.t2?.prac) || 0);
-                        let curTotPr = (actual.passedT1 || actual.passedT2) ? (parseFloat(man.total.prac)||0) : (man.total.prac !== '' ? parseFloat(man.total.prac)||0 : parseFloat(actual.total?.prac) || 0);
+                        let cur1Pr = (man.t1.prac !== '') ? parseFloat(man.t1.prac)||0 : parseFloat(actual.t1?.prac) || 0;
+                        let cur2Pr = (man.t2.prac !== '') ? parseFloat(man.t2.prac)||0 : parseFloat(actual.t2?.prac) || 0;
+                        let curTotPr = (man.total.prac !== '') ? parseFloat(man.total.prac)||0 : parseFloat(actual.total?.prac) || 0;
 
-                        let cur1Wr = actual.passedT1 ? (parseFloat(man.t1.writ)||0) : (actual.t1?.isAbsent ? 0 : (man.t1.writ !== '' ? parseFloat(man.t1.writ)||0 : parseFloat(actual.t1?.writ) || 0));
-                        let cur2Wr = actual.passedT2 ? (parseFloat(man.t2.writ)||0) : (actual.t2?.isAbsent ? 0 : (man.t2.writ !== '' ? parseFloat(man.t2.writ)||0 : parseFloat(actual.t2?.writ) || 0));
+                        let cur1Wr = actual.t1?.isAbsent ? 0 : ((man.t1.writ !== '') ? parseFloat(man.t1.writ)||0 : parseFloat(actual.t1?.writ) || 0);
+                        let cur2Wr = actual.t2?.isAbsent ? 0 : ((man.t2.writ !== '') ? parseFloat(man.t2.writ)||0 : parseFloat(actual.t2?.writ) || 0);
 
-                        let curTotWr = (actual.passedT1 || actual.passedT2) ? (parseFloat(man.total.writ)||0) : (currentIsAbsent ? 0 : (man.total.writ !== '' ? parseFloat(man.total.writ) || 0 : parseFloat(actual.total?.writ) || 0));
+                        let curTotWr = currentIsAbsent ? 0 : ((man.total.writ !== '') ? parseFloat(man.total.writ) || 0 : parseFloat(actual.total?.writ) || 0);
 
                         let valTotYw = 0, valTotPr = 0, valTotW = 0;
                         let valT1W = 0, valT2W = 0; 
@@ -2156,12 +2157,12 @@
                         if (isContinuous) {
                             let t1YwMax = actual.t1?.maxYW > 0 ? actual.t1.maxYW : fbLocal.yw / 2;
                             let t2YwMax = actual.t2?.maxYW > 0 ? actual.t2.maxYW : fbLocal.yw / 2;
-                            if (!actual.passedT1 && bYw.t1 > 0 && actual.t1?.yw !== undefined && actual.t1?.yw !== '-') cur1Yw += Math.min(bYw.t1, t1YwMax - cur1Yw);
-                            if (!actual.passedT2 && bYw.t2 > 0 && actual.t2?.yw !== undefined && actual.t2?.yw !== '-') cur2Yw += Math.min(bYw.t2, t2YwMax - cur2Yw);
+                            if (bYw.t1 > 0 && actual.t1?.yw !== undefined && actual.t1?.yw !== '-') cur1Yw += Math.min(bYw.t1, t1YwMax - cur1Yw);
+                            if (bYw.t2 > 0 && actual.t2?.yw !== undefined && actual.t2?.yw !== '-') cur2Yw += Math.min(bYw.t2, t2YwMax - cur2Yw);
                             valTotYw = cur1Yw + cur2Yw;
                         } else {
                             let maxYw = maxs?.yearWork > 0 ? maxs.yearWork : fbLocal.yw;
-                            if (!(actual.passedT1 || actual.passedT2) && bYw.total > 0 && actual.total?.yw !== undefined && actual.total?.yw !== '-') curTotYw += Math.min(bYw.total, maxYw - curTotYw);
+                            if (bYw.total > 0 && actual.total?.yw !== undefined && actual.total?.yw !== '-') curTotYw += Math.min(bYw.total, maxYw - curTotYw);
                             valTotYw = curTotYw;
                         }
 
@@ -2170,12 +2171,12 @@
                             if (isContinuous) {
                                 let t1PrMax = actual.t1?.maxPrac > 0 ? actual.t1.maxPrac : fbLocal.pr / 2;
                                 let t2PrMax = actual.t2?.maxPrac > 0 ? actual.t2.maxPrac : fbLocal.pr / 2;
-                                if (!actual.passedT1 && bPr.t1 > 0 && actual.t1?.prac !== undefined && actual.t1?.prac !== '-') cur1Pr += Math.min(bPr.t1, t1PrMax - cur1Pr);
-                                if (!actual.passedT2 && bPr.t2 > 0 && actual.t2?.prac !== undefined && actual.t2?.prac !== '-') cur2Pr += Math.min(bPr.t2, t2PrMax - cur2Pr);
+                                if (bPr.t1 > 0 && actual.t1?.prac !== undefined && actual.t1?.prac !== '-') cur1Pr += Math.min(bPr.t1, t1PrMax - cur1Pr);
+                                if (bPr.t2 > 0 && actual.t2?.prac !== undefined && actual.t2?.prac !== '-') cur2Pr += Math.min(bPr.t2, t2PrMax - cur2Pr);
                                 valTotPr = cur1Pr + cur2Pr;
                             } else {
                                 let maxPr = maxs?.practical > 0 ? maxs.practical : fbLocal.pr;
-                                if (!(actual.passedT1 || actual.passedT2) && bPr.total > 0 && actual.total?.prac !== undefined && actual.total?.prac !== '-') curTotPr += Math.min(bPr.total, maxPr - curTotPr);
+                                if (bPr.total > 0 && actual.total?.prac !== undefined && actual.total?.prac !== '-') curTotPr += Math.min(bPr.total, maxPr - curTotPr);
                                 valTotPr = curTotPr;
                             }
                         }
@@ -2184,7 +2185,7 @@
                         valTotW = isContinuous ? (cur1Wr + cur2Wr) : curTotWr;
 
                         let finalScore = valTotYw + valTotPr + valTotW;
-                        if (currentIsAbsent && !actual.passedT1 && !actual.passedT2) finalScore = 0;
+                        if (currentIsAbsent) finalScore = 0;
                         
                         let maxScore = customSubjectMaxes[subject] || maxs?.finalTotal || 0;
                         let currentMaxWrit = customSubjectMaxes[subject] ? (customSubjectMaxes[subject] * (fbLocal.wr / fbLocal.tot)) : (maxs?.written || 0);
@@ -2199,7 +2200,7 @@
                             currentMaxWrit = maxScore;
                         }
 
-                        if (isForsa && !currentIsAbsent && !passedStatusText) {
+                        if (isForsa && !currentIsAbsent) {
                             valTotYw = 0;
                             let maxPrac = maxs?.practical > 0 ? maxs.practical : (hasPractical ? fbLocal.pr : 0);
                             let maxNonYw = currentMaxWrit + maxPrac;
@@ -2212,7 +2213,7 @@
                             } else {
                                 finalScore = valTotPr + valTotW;
                             }
-                        } else if (isMokayed && !currentIsAbsent && !passedStatusText) {
+                        } else if (isMokayed && !currentIsAbsent) {
                             valTotYw = 0;
                             valTotPr = 0;
                             if (currentMaxWrit > 0) {
@@ -2230,7 +2231,7 @@
                         if (maxScore > 0 && bulkAdd > 0 && !isTakhlof) {
                             let canApplyBulk = true;
                             if (excludeZeroWrittenFromBulk) {
-                                if (currentIsAbsent || (isContinuous && cur1Wr===0 && cur2Wr===0 && !actual.passedT1 && !actual.passedT2) || (!isContinuous && curTotWr===0 && !actual.passedT1 && !actual.passedT2)) {
+                                if (currentIsAbsent || (isContinuous && cur1Wr===0 && cur2Wr===0) || (!isContinuous && curTotWr===0)) {
                                     canApplyBulk = false; 
                                 }
                             }
@@ -2244,14 +2245,14 @@
                                     let t2WMax = actual.t2?.maxWr > 0 ? actual.t2.maxWr : fbLocal.wr / 2;
                                     let remainingBulk = Math.min(bulkAdd, spaceTotal);
 
-                                    if (!actual.t1?.isAbsent && !actual.passedT1) {
+                                    if (!actual.t1?.isAbsent) {
                                         let spaceT1 = t1WMax - valT1W;
                                         if (spaceT1 > 0) {
                                             let addT1 = Math.min(remainingBulk, spaceT1);
                                             valT1W += addT1; valTotW += addT1; actualAdded += addT1; remainingBulk -= addT1;
                                         }
                                     }
-                                    if (remainingBulk > 0 && !actual.t2?.isAbsent && !actual.passedT2) {
+                                    if (remainingBulk > 0 && !actual.t2?.isAbsent) {
                                         let spaceT2 = t2WMax - valT2W;
                                         if (spaceT2 > 0) {
                                             let addT2 = Math.min(remainingBulk, spaceT2);
@@ -2259,7 +2260,7 @@
                                         }
                                     }
                                 } else {
-                                    if (!currentIsAbsent && !actual.passedT1 && !actual.passedT2) {
+                                    if (!currentIsAbsent) {
                                         let space = currentMaxWrit - valTotW;
                                         if (space > 0) {
                                             actualAdded = Math.min(bulkAdd, space, spaceTotal);
@@ -2274,47 +2275,71 @@
 
                         if (isRepeater) {
                             if (isContinuous) {
-                                if (actual.passedT1) {
-                                    let t1Max = actual.t1?.maxTot > 0 ? actual.t1.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
-                                    let t1Score = cur1Yw + cur1Pr + cur1Wr;
-                                    if (t1Score > t1Max * 0.64) finalScore -= (t1Score - (t1Max * 0.64));
+                                let t1Max = actual.t1?.maxTot > 0 ? actual.t1.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
+                                let t1Score = cur1Yw + cur1Pr + cur1Wr;
+                                if (t1Score > (t1Max * 0.64 - 0.5)) {
+                                    let cap1 = Math.max(0, t1Max * 0.64 - 0.5);
+                                    finalScore -= (t1Score - cap1);
                                 }
-                                if (actual.passedT2) {
-                                    let t2Max = actual.t2?.maxTot > 0 ? actual.t2.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
-                                    let t2Score = cur2Yw + cur2Pr + cur2Wr;
-                                    if (t2Score > t2Max * 0.64) finalScore -= (t2Score - (t2Max * 0.64));
+                                let t2Max = actual.t2?.maxTot > 0 ? actual.t2.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
+                                let t2Score = cur2Yw + cur2Pr + cur2Wr;
+                                if (t2Score > (t2Max * 0.64 - 0.5)) {
+                                    let cap2 = Math.max(0, t2Max * 0.64 - 0.5);
+                                    finalScore -= (t2Score - cap2);
                                 }
                             } else {
-                                if (actual.passedT1 || actual.passedT2) {
-                                    let maxScoreC = customSubjectMaxes[subject] || maxs?.finalTotal || (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0));
-                                    if (finalScore > maxScoreC * 0.64) {
-                                        finalScore = maxScoreC * 0.64;
-                                    }
+                                let maxScoreC = customSubjectMaxes[subject] || maxs?.finalTotal || (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0));
+                                let capTot = Math.max(0, maxScoreC * 0.64 - 0.5);
+                                if (finalScore > capTot) {
+                                    finalScore = capTot;
                                 }
                             }
                         }
 
                         let isCapped = (applyAtRiskRules || isTakhlof) && student._capRepeater && student._capRepeater[subject];
                         if (isCapped) {
-                            let capLimit = maxScore * 0.64;
+                            let capLimit = Math.max(0, maxScore * 0.64 - 0.5);
                             if (finalScore > capLimit) { finalScore = capLimit; }
                         }
 
-                        // تطبيق تخفيض الدرجات عبر الزر الجديد
-                        let hasDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
-                        if (hasDiscount) {
-                            finalScore = finalScore * 0.5; // أو تخفيض بنسبة النصف كمثال تفاعلي
+                        // إصلاح عملية تخفيض الدرجات لتصبح مساوية لـ (64% - 0.5 درجة) من مجموع المادة
+                        if (isContinuous) {
+                            let t1Max = actual.t1?.maxTot > 0 ? actual.t1.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
+                            let t2Max = actual.t2?.maxTot > 0 ? actual.t2.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
+                            
+                            let isT1Discount = student._subjectDiscounts && student._subjectDiscounts[`${subject}_t1`];
+                            let isT2Discount = student._subjectDiscounts && student._subjectDiscounts[`${subject}_t2`];
+                            let isTotDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
+
+                            if (isT1Discount || isTotDiscount) {
+                                let cap1 = Math.max(0, t1Max * 0.64 - 0.5);
+                                let cur1Score = cur1Yw + cur1Pr + cur1Wr;
+                                if (cur1Score > cap1) finalScore -= (cur1Score - cap1);
+                            }
+                            if (isT2Discount || isTotDiscount) {
+                                let cap2 = Math.max(0, t2Max * 0.64 - 0.5);
+                                let cur2Score = cur2Yw + cur2Pr + cur2Wr;
+                                if (cur2Score > cap2) finalScore -= (cur2Score - cap2);
+                            }
+                        } else {
+                            let hasDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
+                            if (hasDiscount) {
+                                let targetCap = Math.max(0, maxScore * 0.64 - 0.5);
+                                if (finalScore > targetCap) {
+                                    finalScore = targetCap;
+                                }
+                            }
                         }
 
                         let percentage = maxScore > 0 ? (finalScore / maxScore) * 100 : 0;
                         let isBylawFail = !isTakhlof && (currentMaxWrit > 0 && valTotW < (currentMaxWrit * 0.30));
                         let isFailing = false;
 
-                        let isFullyPassed = (isContinuous && actual.passedT1 && actual.passedT2) || (!isContinuous && (actual.passedT1 || actual.passedT2));
+                        let isFullyPassed = (percentage >= 50 && !isBylawFail && !currentIsAbsent);
                         if (isFullyPassed) {
                             isBylawFail = false;
                             isFailing = false;
-                        } else if ((currentIsAbsent && !actual.passedT1 && !actual.passedT2) || isBylawFail || percentage < 50) {
+                        } else if (currentIsAbsent || isBylawFail || percentage < 50) {
                             isFailing = true;
                             if (isHum) initialHumFails++; else initialCoreFails++;
                         }
@@ -2371,7 +2396,7 @@
 
                          eligibleForGrace.sort((a, b) => {
                               if (a.requiredMarks !== b.requiredMarks) return a.requiredMarks - b.requiredMarks;
-                              return b.writtenScore - a.writtenScore;
+                              return b.writtenScore - a.requiredMarks;
                          });
 
                          let tempBasket = availableBasket;
@@ -2393,10 +2418,10 @@
                                    tempAllocations[el.subject] = el.requiredMarks;
                                    
                                    if (isHumSubj) {
-                                       simHumFails--;
+                                        simHumFails--;
                                    } else {
-                                       simCoreFails--;
-                                       appliedCoreCount++;
+                                        simCoreFails--;
+                                        appliedCoreCount++;
                                    }
                               }
                          }
@@ -2437,13 +2462,13 @@
                         let tdTotal = document.createElement('td'); tdTotal.className = `subject-total ${subCls}`; 
                         let tdGrade = document.createElement('td'); tdGrade.className = `subject-grade ${subCls}`;
 
-                        // إضافة زر التخفيض بجانب جميع مواد الطلاب الغير المستجدين (مثلث أخضر رأسة لأعلى يقلب إلى مثلث أحمر رأسه لأسفل عند التفعيل)
+                        // إضافة زر التخفيض لجميع الحالات لغير المستجدين، مع إتاحتها للمواد الممتدة والتخلف والراسبين
                         let discountBtnHtml = '';
                         if (!isFreshman) {
                             let isDiscountsActive = student._subjectDiscounts && student._subjectDiscounts[subject];
                             let triangleSymbol = isDiscountsActive ? '▼' : '▲';
                             let triangleColor = isDiscountsActive ? '#d32f2f' : '#2e7d32';
-                            let titleText = isDiscountsActive ? 'إلغاء التخفيض' : 'تطبيق التخفيض';
+                            let titleText = isDiscountsActive ? 'إلغاء التخفيض' : 'تطبيق التخفيض (64% - 0.5)';
                             discountBtnHtml = `<button class="discount-btn" onclick="toggleStudentDiscount(${studentIndex}, '${subject}')" title="${titleText}"><span style="color: ${triangleColor}; font-size: 14px;">${triangleSymbol}</span></button>`;
                         }
 
@@ -2495,29 +2520,38 @@
                             valTotPr = baseObj.curTotPr;
                         }
 
-                        let dispT1Yw = actual.passedT1 ? man.t1.yw : actual.t1?.yw;
-                        let dispT2Yw = actual.passedT2 ? man.t2.yw : actual.t2?.yw;
-                        let dispTotYw = (actual.passedT1 || actual.passedT2) ? man.total.yw : actual.total?.yw;
+                        let dispT1Yw = (man.t1.yw !== '') ? man.t1.yw : actual.t1?.yw;
+                        let dispT2Yw = (man.t2.yw !== '') ? man.t2.yw : actual.t2?.yw;
+                        let dispTotYw = (man.total.yw !== '') ? man.total.yw : actual.total?.yw;
 
-                        let dispT1Pr = actual.passedT1 ? man.t1.prac : actual.t1?.prac;
-                        let dispT2Pr = actual.passedT2 ? man.t2.prac : actual.t2?.prac;
-                        let dispTotPr = (actual.passedT1 || actual.passedT2) ? man.total.prac : actual.total?.prac;
+                        let dispT1Pr = (man.t1.prac !== '') ? man.t1.prac : actual.t1?.prac;
+                        let dispT2Pr = (man.t2.prac !== '') ? man.t2.prac : actual.t2?.prac;
+                        let dispTotPr = (man.total.prac !== '') ? man.total.prac : actual.total?.prac;
 
-                        let dispT1w = actual.passedT1 ? man.t1.writ : (actual.t1?.isAbsent ? '<span style="color:#000;">غ</span>' : actual.t1?.writ);
-                        let dispT2w = actual.passedT2 ? man.t2.writ : (actual.t2?.isAbsent ? '<span style="color:#000;">غ</span>' : actual.t2?.writ);
-                        let dispTotW = (actual.passedT1 || actual.passedT2) ? man.total.writ : (currentIsAbsent ? '<span style="color:#000;">غ</span>' : actual.total?.writ);
+                        let dispT1w = (man.t1.writ !== '') ? man.t1.writ : (actual.t1?.isAbsent ? '<span style="color:#000;">غ</span>' : actual.t1?.writ);
+                        let dispT2w = (man.t2.writ !== '') ? man.t2.writ : (actual.t2?.isAbsent ? '<span style="color:#000;">غ</span>' : actual.t2?.writ);
+                        let dispTotW = (man.total.writ !== '') ? man.total.writ : (currentIsAbsent ? '<span style="color:#000;">غ</span>' : actual.total?.writ);
 
-                        let inpT1Yw = (!isFreshman && !actual.passedT1) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t1.yw !== '' ? man.t1.yw : (actual.t1?.yw !== undefined && actual.t1?.yw !== '-' ? actual.t1.yw : '')}" placeholder="${actual.t1?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'yw', this.value)">` : null;
-                        let inpT2Yw = (!isFreshman && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t2.yw !== '' ? man.t2.yw : (actual.t2?.yw !== undefined && actual.t2?.yw !== '-' ? actual.t2.yw : '')}" placeholder="${actual.t2?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'yw', this.value)">` : null;
-                        let inpTotYw = (!isFreshman && !actual.passedT1 && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.yw !== '' ? man.total.yw : (actual.total?.yw !== undefined ? actual.total.yw : '')}" placeholder="${actual.total?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'yw', this.value)">` : null;
+                        let discountBtnT1Html = '';
+                        let discountBtnT2Html = '';
+                        if (!isFreshman && isContinuous) {
+                            let isT1Dis = student._subjectDiscounts && student._subjectDiscounts[`${subject}_t1`];
+                            let isT2Dis = student._subjectDiscounts && student._subjectDiscounts[`${subject}_t2`];
+                            discountBtnT1Html = `<button class="discount-btn" onclick="toggleStudentDiscount(${studentIndex}, '${subject}', 't1')" title="تخفيض الترم الأول"><span style="color: ${isT1Dis ? '#d32f2f' : '#2e7d32'}; font-size: 12px;">${isT1Dis ? '▼' : '▲'}</span></button>`;
+                            discountBtnT2Html = `<button class="discount-btn" onclick="toggleStudentDiscount(${studentIndex}, '${subject}', 't2')" title="تخفيض الترم الثاني"><span style="color: ${isT2Dis ? '#d32f2f' : '#2e7d32'}; font-size: 12px;">${isT2Dis ? '▼' : '▲'}</span></button>`;
+                        }
 
-                        let inpT1Pr = (!isFreshman && !actual.passedT1) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t1.prac !== '' ? man.t1.prac : (actual.t1?.prac !== undefined && actual.t1?.prac !== '-' ? actual.t1.prac : '')}" placeholder="${actual.t1?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'prac', this.value)">` : null;
-                        let inpT2Pr = (!isFreshman && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t2.prac !== '' ? man.t2.prac : (actual.t2?.prac !== undefined && actual.t2?.prac !== '-' ? actual.t2.prac : '')}" placeholder="${actual.t2?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'prac', this.value)">` : null;
-                        let inpTotPr = (!isFreshman && !actual.passedT1 && !actual.passedT2) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.prac !== '' ? man.total.prac : (actual.total?.prac !== undefined ? actual.total.prac : '')}" placeholder="${actual.total?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'prac', this.value)">` : null;
+                        let inpT1Yw = !isFreshman ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t1.yw !== '' ? man.t1.yw : (actual.t1?.yw !== undefined && actual.t1?.yw !== '-' ? actual.t1.yw : '')}" placeholder="${actual.t1?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'yw', this.value)">` : null;
+                        let inpT2Yw = !isFreshman ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t2.yw !== '' ? man.t2.yw : (actual.t2?.yw !== undefined && actual.t2?.yw !== '-' ? actual.t2.yw : '')}" placeholder="${actual.t2?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'yw', this.value)">` : null;
+                        let inpTotYw = !isFreshman ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.yw !== '' ? man.total.yw : (actual.total?.yw !== undefined ? actual.total.yw : '')}" placeholder="${actual.total?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'yw', this.value)">` : null;
 
-                        let inpT1W = (!isFreshman && !actual.passedT1 && !actual.t1?.isAbsent) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t1.writ !== '' ? man.t1.writ : (actual.t1?.writ !== undefined && actual.t1?.writ !== '-' ? actual.t1.writ : '')}" placeholder="${actual.t1?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'writ', this.value)">` : null;
-                        let inpT2W = (!isFreshman && !actual.passedT2 && !actual.t2?.isAbsent) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t2.writ !== '' ? man.t2.writ : (actual.t2?.writ !== undefined && actual.t2?.writ !== '-' ? actual.t2.writ : '')}" placeholder="${actual.t2?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'writ', this.value)">` : null;
-                        let inpTotW = (!isFreshman && !actual.passedT1 && !actual.passedT2 && !currentIsAbsent) ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.writ !== '' ? man.total.writ : (actual.total?.writ !== undefined ? actual.total.writ : '')}" placeholder="${actual.total?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value)">` : null;
+                        let inpT1Pr = !isFreshman ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t1.prac !== '' ? man.t1.prac : (actual.t1?.prac !== undefined && actual.t1?.prac !== '-' ? actual.t1.prac : '')}" placeholder="${actual.t1?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'prac', this.value)">` : null;
+                        let inpT2Pr = !isFreshman ? `<input type="number" step="0.5" class="score-edit-input" value="${man.t2.prac !== '' ? man.t2.prac : (actual.t2?.prac !== undefined && actual.t2?.prac !== '-' ? actual.t2.prac : '')}" placeholder="${actual.t2?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'prac', this.value)">` : null;
+                        let inpTotPr = !isFreshman ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.prac !== '' ? man.total.prac : (actual.total?.prac !== undefined ? actual.total.prac : '')}" placeholder="${actual.total?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'prac', this.value)">` : null;
+
+                        let inpT1W = !isFreshman ? `<div style="display:flex; align-items:center; justify-content:center;">${discountBtnT1Html}<input type="number" step="0.5" class="score-edit-input" value="${man.t1.writ !== '' ? man.t1.writ : (actual.t1?.writ !== undefined && actual.t1?.writ !== '-' ? actual.t1.writ : '')}" placeholder="${actual.t1?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'writ', this.value)"></div>` : null;
+                        let inpT2W = !isFreshman ? `<div style="display:flex; align-items:center; justify-content:center;">${discountBtnT2Html}<input type="number" step="0.5" class="score-edit-input" value="${man.t2.writ !== '' ? man.t2.writ : (actual.t2?.writ !== undefined && actual.t2?.writ !== '-' ? actual.t2.writ : '')}" placeholder="${actual.t2?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'writ', this.value)"></div>` : null;
+                        let inpTotW = !isFreshman ? `<input type="number" step="0.5" class="score-edit-input" value="${man.total.writ !== '' ? man.total.writ : (actual.total?.writ !== undefined ? actual.total.writ : '')}" placeholder="${actual.total?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value)">` : null;
 
                         if (isForsa || isMokayed) {
                             valTotYw = 0; dispTotYw = '-'; 
@@ -2530,29 +2564,29 @@
                             }
                         } else {
                             if (isContinuous) {
-                                if (actual.passedT1) dispT1Yw = valT1Yw; else if (valT1Yw !== (parseFloat(actual.t1?.yw)||0)) dispT1Yw = valT1Yw;
-                                if (actual.passedT2) dispT2Yw = valT2Yw; else if (valT2Yw !== (parseFloat(actual.t2?.yw)||0)) dispT2Yw = valT2Yw;
+                                dispT1Yw = valT1Yw;
+                                dispT2Yw = valT2Yw;
                                 dispTotYw = valTotYw;
                             } else {
-                                if ((actual.passedT1 || actual.passedT2)) dispTotYw = valTotYw; else if (valTotYw !== (parseFloat(actual.total?.yw)||0)) dispTotYw = valTotYw;
+                                dispTotYw = valTotYw;
                             }
 
                             if (hasPractical) {
                                 if (isContinuous) {
-                                    if (actual.passedT1) dispT1Pr = valT1Pr; else if (valT1Pr !== (parseFloat(actual.t1?.prac)||0)) dispT1Pr = valT1Pr;
-                                    if (actual.passedT2) dispT2Pr = valT2Pr; else if (valT2Pr !== (parseFloat(actual.t2?.prac)||0)) dispT2Pr = valT2Pr;
+                                    dispT1Pr = valT1Pr;
+                                    dispT2Pr = valT2Pr;
                                     dispTotPr = valTotPr;
                                 } else {
-                                    if ((actual.passedT1 || actual.passedT2)) dispTotPr = valTotPr; else if (valTotPr !== (parseFloat(actual.total?.prac)||0)) dispTotPr = valTotPr;
+                                    dispTotPr = valTotPr;
                                 }
                             }
                             
                             if (isContinuous) {
-                                if (!actual.passedT1 && valT1W !== (parseFloat(actual.t1?.writ)||0)) dispT1w = valT1W;
-                                if (!actual.passedT2 && valT2W !== (parseFloat(actual.t2?.writ)||0)) dispT2w = valT2W;
+                                dispT1w = valT1W;
+                                dispT2w = valT2W;
                                 dispTotW = valTotW;
                             } else {
-                                if (!actual.passedT1 && !actual.passedT2 && valTotW !== (parseFloat(actual.total?.writ)||0)) dispTotW = valTotW;
+                                dispTotW = valTotW;
                             }
                         }
 
@@ -2560,7 +2594,7 @@
                             if(isContinuous) {
                                 tdYW.innerHTML = buildContinuousCell(dispT1Yw, dispT2Yw, dispTotYw, false, actual.passedT1, actual.passedT2, inpT1Yw, inpT2Yw);
                             } else {
-                                tdYW.innerHTML = (actual.passedT1 || actual.passedT2) ? getManualInput(man.total.yw, 'yw', 'total', subjectIndex, studentIndex, maxs?.yearWork||fbLocal.yw) : (inpTotYw || ((dispTotYw !== undefined && dispTotYw !== '-') ? dispTotYw : '-'));
+                                tdYW.innerHTML = inpTotYw || ((dispTotYw !== undefined && dispTotYw !== '-') ? dispTotYw : '-');
                             }
                         }
 
@@ -2568,7 +2602,7 @@
                             if(isContinuous) {
                                 tdPrac.innerHTML = buildContinuousCell(dispT1Pr, dispT2Pr, dispTotPr, false, actual.passedT1, actual.passedT2, inpT1Pr, inpT2Pr);
                             } else {
-                                tdPrac.innerHTML = (actual.passedT1 || actual.passedT2) ? getManualInput(man.total.prac, 'prac', 'total', subjectIndex, studentIndex, maxs?.practical||fbLocal.pr) : (inpTotPr || ((dispTotPr !== undefined && dispTotPr !== '-') ? dispTotPr : '-'));
+                                tdPrac.innerHTML = inpTotPr || ((dispTotPr !== undefined && dispTotPr !== '-') ? dispTotPr : '-');
                             }
                         }
 
@@ -2576,7 +2610,7 @@
                             if(isContinuous) {
                                 tdWrit.innerHTML = buildContinuousCell(dispT1w, dispT2w, dispTotW, false, actual.passedT1, actual.passedT2, inpT1W, inpT2W);
                             } else {
-                                tdWrit.innerHTML = (actual.passedT1 || actual.passedT2) ? (getManualInput(man.total.writ, 'writ', 'total', subjectIndex, studentIndex, maxs?.written||fbLocal.wr)) : (inpTotW || (currentIsAbsent ? '<span style="color:#000;">غ</span>' : ((dispTotW !== undefined && dispTotW !== '-') ? dispTotW : '-')));
+                                tdWrit.innerHTML = inpTotW || (currentIsAbsent ? '<span style="color:#000;">غ</span>' : ((dispTotW !== undefined && dispTotW !== '-') ? dispTotW : '-'));
                             }
                         }
 
@@ -2594,7 +2628,7 @@
                         
                         let uncappedScore = finalScore;
                         if (isCapped) {
-                            let capLimit = maxScore * 0.64;
+                            let capLimit = Math.max(0, maxScore * 0.64 - 0.5);
                             if (finalScore >= capLimit) { wasActuallyCapped = true; }
                         }
 
@@ -2654,7 +2688,6 @@
                                 if (takhPct < 50) {
                                     subjectIsFailed = true;
                                     displayGrade = `<span class="red-circle-badge">${takhGradeInfo.symbol}</span>`;
-                                    valInpHTML = `<span class="red-circle-badge">${numVal}</span>`;
                                 }
                             }
                             
@@ -2664,7 +2697,7 @@
                             baseScoreStr = finalScore;
                             displayScoreHTML = baseScoreStr;
 
-                            if (currentIsAbsent && !actual.passedT1 && !actual.passedT2) {
+                            if (currentIsAbsent) {
                                 displayScoreHTML = `<span class="red-circle-badge">غ</span>`;
                                 displayGrade = `<span class="red-circle-badge">غ</span>`; 
                                 tdGrade.className = `subject-grade ${subCls} grade-bylaw`;
@@ -2692,7 +2725,7 @@
                                     subjectIsFailed = true; internalStatsGrade = gradeInfo.text; 
                                 }
                             } else {
-                                if (!isFullyPassed && graceAllocations[subject]) {
+                                if (graceAllocations[subject]) {
                                     graceAdded = graceAllocations[subject];
                                     let raisedScore = finalScore + graceAdded;
                                     let raisedGradeInfo = getEgyptianGrade((raisedScore / maxScore) * 100);
@@ -2704,7 +2737,7 @@
                                     tdGrade.className = `subject-grade ${subCls} ${raisedGradeInfo.cssClass}`;
                                     internalStatsGrade = raisedGradeInfo.text; 
                                 } else {
-                                    if (!isFullyPassed && !isCapped && activeSubjUpgradePct > 0) {
+                                    if (!isCapped && activeSubjUpgradePct > 0) {
                                         let nextThreshold = 0;
                                         if (percentage >= 50 && percentage < 65) nextThreshold = 65;
                                         else if (percentage >= 65 && percentage < 75) nextThreshold = 75;
@@ -2779,8 +2812,8 @@
                             t2wr: actual.t2?.isAbsent ? 'غ' : valT2W,
                             yw: valTotYw,
                             pr: valTotPr,
-                            wr: currentIsAbsent && !actual.passedT1 && !actual.passedT2 ? 'غ' : valTotW,
-                            finalWithGraceAndUpgrade: currentIsAbsent && !actual.passedT1 && !actual.passedT2 ? 'غ' : (finalScore + graceAdded + upgradeAdded),
+                            wr: currentIsAbsent ? 'غ' : valTotW,
+                            finalWithGraceAndUpgrade: currentIsAbsent ? 'غ' : (finalScore + graceAdded + upgradeAdded),
                             takhName: actual.takhName || ''
                         };
 
@@ -2788,7 +2821,7 @@
                         let certPrac = tdPrac ? (isContinuous ? `<div class="cert-term-row">${dispT1Pr !== undefined ? dispT1Pr : '-'}</div><div class="cert-term-row">${dispT2Pr !== undefined ? dispT2Pr : '-'}</div><div class="cert-tot-row">${dispTotPr !== undefined ? dispTotPr : '-'}</div>` : tdPrac.innerHTML) : '-';
                         let writT1 = actual.t1?.isAbsent ? 'غ' : dispT1w; 
                         let writT2 = actual.t2?.isAbsent ? 'غ' : dispT2w;
-                        let certWrit = isContinuous ? `<div class="cert-term-row">${writT1}</div><div class="cert-term-row">${writT2}</div><div class="cert-tot-row">${currentIsAbsent&&!actual.passedT1&&!actual.passedT2?'غ':dispTotW}</div>` : tdWrit.innerHTML;
+                        let certWrit = isContinuous ? `<div class="cert-term-row">${writT1}</div><div class="cert-term-row">${writT2}</div><div class="cert-tot-row">${currentIsAbsent?'غ':dispTotW}</div>` : tdWrit.innerHTML;
 
                         if (isTakhlof) {
                             if(student._displayData) student._displayData[subject] = {
@@ -3094,12 +3127,12 @@
                     let isCurrentAbs = isCont ? (actual.totalTerms > 0 && actual.absentTerms === actual.totalTerms) : actual.isAbsent;
                     
                     if(isCont) {
-                        t1yw = actual.passedT1 ? man.t1.yw : actual.t1.yw; 
-                        t1pr = actual.passedT1 ? man.t1.prac : actual.t1.prac; 
-                        t1wr = actual.passedT1 ? man.t1.writ : (actual.t1.isAbsent ? 'غ' : actual.t1.writ);
-                        t2yw = actual.passedT2 ? man.t2.yw : actual.t2.yw; 
-                        t2pr = actual.passedT2 ? man.t2.prac : actual.t2.prac; 
-                        t2wr = actual.passedT2 ? man.t2.writ : (actual.t2.isAbsent ? 'غ' : actual.t2.writ);
+                        t1yw = (man.t1.yw !== '') ? man.t1.yw : actual.t1.yw; 
+                        t1pr = (man.t1.prac !== '') ? man.t1.prac : actual.t1.prac; 
+                        t1wr = (man.t1.writ !== '') ? man.t1.writ : (actual.t1.isAbsent ? 'غ' : actual.t1.writ);
+                        t2yw = (man.t2.yw !== '') ? man.t2.yw : actual.t2.yw; 
+                        t2pr = (man.t2.prac !== '') ? man.t2.prac : actual.t2.prac; 
+                        t2wr = (man.t2.writ !== '') ? man.t2.writ : (actual.t2.isAbsent ? 'غ' : actual.t2.writ);
                         
                         t1myw = actual.t1.maxYW || (fb.yw/2); t1mpr = actual.t1.maxPrac || (fb.pr/2); t1mwr = actual.t1.maxWr || (fb.wr/2);
                         t2myw = actual.t2.maxYW || (fb.yw/2); t2mpr = actual.t2.maxPrac || (fb.pr/2); t2mwr = actual.t2.maxWr || (fb.wr/2);
@@ -3111,9 +3144,9 @@
                         let mwr = mScores?.written || fb.wr;
                         totMax = mScores?.finalTotal || fb.tot;
                         
-                        let yTot = (actual.passedT1||actual.passedT2) ? man.total.yw : actual.total.yw;
-                        let pTot = (actual.passedT1||actual.passedT2) ? man.total.prac : actual.total.prac;
-                        let wTot = (actual.passedT1||actual.passedT2) ? man.total.writ : (actual.isAbsent ? 'غ' : actual.total.writ);
+                        let yTot = (man.total.yw !== '') ? man.total.yw : actual.total.yw;
+                        let pTot = (man.total.prac !== '') ? man.total.prac : actual.total.prac;
+                        let wTot = (man.total.writ !== '') ? man.total.writ : (actual.isAbsent ? 'غ' : actual.total.writ);
 
                         if (t2HasFiles && !t1HasFiles) { 
                             t2yw = yTot; t2pr = pTot; t2wr = wTot;
