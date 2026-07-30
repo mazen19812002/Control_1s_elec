@@ -120,6 +120,29 @@
             margin: 2px;
         }
 
+        .forsa-pink-badge {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid #e91e63;
+            background-color: #fce4ec;
+            color: #ad1457 !important;
+            font-weight: 900;
+            padding: 2px;
+            box-shadow: 0 2px 6px rgba(233, 30, 99, 0.3);
+            text-shadow: none;
+            margin-top: 2px;
+        }
+
+        .forsa-blue-val {
+            color: #0d47a1 !important;
+            font-weight: 900;
+            font-size: 15px;
+        }
+
         .status-select {
             padding: 4px 8px;
             border-radius: 6px;
@@ -292,6 +315,7 @@
             .cap-badge { background-color: #1565c0 !important; color: white !important; padding: 1px 4px; box-shadow: none; display: inline-flex; justify-content: center; align-items: center; min-width: 26px; height: 26px; border-radius: 20px; font-size: 14px; font-weight: bold; white-space: nowrap; text-shadow: none; }
             .red-circle-badge { border-color: #d32f2f !important; background-color: transparent !important; color: #d32f2f !important; box-shadow: none !important; }
             .cap-blue-circle-badge { border-color: #1565c0 !important; background-color: transparent !important; color: #1565c0 !important; box-shadow: none !important; }
+            .forsa-pink-badge { border-color: #e91e63 !important; background-color: #fce4ec !important; color: #ad1457 !important; box-shadow: none !important; }
             .grace-original { color: #000 !important; font-size: 10px !important;}
             .text-passed { font-size: 10px !important; color: #000 !important; }
             .status-transfer { color: #000 !important; font-weight: bold !important; }
@@ -2245,30 +2269,34 @@
                             currentMaxWrit = maxScore;
                         }
 
-                        if (isForsa && !currentIsAbsent) {
-                            valTotYw = 0;
-                            let maxPrac = maxs?.practical > 0 ? maxs.practical : (hasPractical ? fbLocal.pr : 0);
-                            let maxNonYw = currentMaxWrit + maxPrac;
-                            if (maxNonYw > 0) {
-                                let calculated = (((valTotPr + valTotW) / maxNonYw) * maxScore);
-                                let remainder = calculated % 1;
-                                if (remainder > 0 && remainder <= 0.5) finalScore = Math.floor(calculated) + 0.5;
-                                else if (remainder > 0.5) finalScore = Math.ceil(calculated);
-                                else finalScore = calculated;
-                            } else {
-                                finalScore = valTotPr + valTotW;
+                        let forsaEvaluatedScore = null;
+
+                        if ((isForsa || isMokayed) && !currentIsAbsent) {
+                            valTotYw = 0; 
+                            let effectiveComponentsMax = currentMaxWrit;
+                            let achievedComponentsScore = valTotW;
+
+                            if (hasPractical && !isMokayed) {
+                                let maxPrac = maxs?.practical > 0 ? maxs.practical : fbLocal.pr;
+                                effectiveComponentsMax += maxPrac;
+                                achievedComponentsScore += valTotPr;
+                            } else if (isMokayed) {
+                                valTotPr = 0;
                             }
-                        } else if (isMokayed && !currentIsAbsent) {
-                            valTotYw = 0;
-                            valTotPr = 0;
-                            if (currentMaxWrit > 0) {
-                                let calculated = ((valTotW / currentMaxWrit) * maxScore);
+
+                            if (effectiveComponentsMax > 0) {
+                                let ratioPct = (achievedComponentsScore / effectiveComponentsMax) * 100;
+                                let calculated = (ratioPct / 100) * maxScore;
+                                
                                 let remainder = calculated % 1;
                                 if (remainder > 0 && remainder <= 0.5) finalScore = Math.floor(calculated) + 0.5;
                                 else if (remainder > 0.5) finalScore = Math.ceil(calculated);
                                 else finalScore = calculated;
+
+                                forsaEvaluatedScore = finalScore;
                             } else {
-                                finalScore = valTotW;
+                                finalScore = achievedComponentsScore;
+                                forsaEvaluatedScore = finalScore;
                             }
                         }
 
@@ -2318,23 +2346,23 @@
                             }
                         }
 
-                        if (isRepeater) {
+                        if (isRepeater && !isForsa) {
                             if (isContinuous) {
                                 let t1Max = actual.t1?.maxTot > 0 ? actual.t1.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
                                 let t1Score = cur1Yw + cur1Pr + cur1Wr;
-                                if (t1Score > (t1Max * 0.64 - 0.5)) {
-                                    let cap1 = Math.max(0, t1Max * 0.64 - 0.5);
+                                let cap1 = Math.max(0, (t1Max * 0.64) - 0.5);
+                                if (t1Score > cap1) {
                                     finalScore -= (t1Score - cap1);
                                 }
                                 let t2Max = actual.t2?.maxTot > 0 ? actual.t2.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
                                 let t2Score = cur2Yw + cur2Pr + cur2Wr;
-                                if (t2Score > (t2Max * 0.64 - 0.5)) {
-                                    let cap2 = Math.max(0, t2Max * 0.64 - 0.5);
+                                let cap2 = Math.max(0, (t2Max * 0.64) - 0.5);
+                                if (t2Score > cap2) {
                                     finalScore -= (t2Score - cap2);
                                 }
                             } else {
                                 let maxScoreC = customSubjectMaxes[subject] || maxs?.finalTotal || (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0));
-                                let capTot = Math.max(0, maxScoreC * 0.64 - 0.5);
+                                let capTot = Math.max(0, (maxScoreC * 0.64) - 0.5);
                                 if (finalScore > capTot) {
                                     finalScore = capTot;
                                 }
@@ -2343,7 +2371,7 @@
 
                         let isCapped = (applyAtRiskRules || isTakhlof) && student._capRepeater && student._capRepeater[subject];
                         if (isCapped) {
-                            let capLimit = Math.max(0, maxScore * 0.64 - 0.5);
+                            let capLimit = Math.max(0, (maxScore * 0.64) - 0.5);
                             if (finalScore > capLimit) { finalScore = capLimit; }
                         }
 
@@ -2356,19 +2384,19 @@
                             let isTotDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
 
                             if (isT1Discount || isTotDiscount) {
-                                let cap1 = Math.max(0, t1Max * 0.64 - 0.5);
+                                let cap1 = Math.max(0, (t1Max * 0.64) - 0.5);
                                 let cur1Score = cur1Yw + cur1Pr + cur1Wr;
                                 if (cur1Score > cap1) finalScore -= (cur1Score - cap1);
                             }
                             if (isT2Discount || isTotDiscount) {
-                                let cap2 = Math.max(0, t2Max * 0.64 - 0.5);
+                                let cap2 = Math.max(0, (t2Max * 0.64) - 0.5);
                                 let cur2Score = cur2Yw + cur2Pr + cur2Wr;
                                 if (cur2Score > cap2) finalScore -= (cur2Score - cap2);
                             }
                         } else {
                             let hasDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
                             if (hasDiscount) {
-                                let targetCap = Math.max(0, maxScore * 0.64 - 0.5);
+                                let targetCap = Math.max(0, (maxScore * 0.64) - 0.5);
                                 if (finalScore > targetCap) {
                                     finalScore = targetCap;
                                 }
@@ -2395,7 +2423,7 @@
                         subjectsBaseData[subject] = {
                             passedStatusText, evaluateHalf, finalScore, maxScore, valTotW, currentMaxWrit,
                             isBylawFail, currentIsAbsent, isCapped, isFailing, isFullyPassed, isNotEnrolled,
-                            valT1W, valT2W, cur1Yw, cur2Yw, curTotYw, cur1Pr, cur2Pr, curTotPr, cur1Wr, cur2Wr, curTotWr, man
+                            valT1W, valT2W, cur1Yw, cur2Yw, curTotYw, cur1Pr, cur2Pr, curTotPr, cur1Wr, cur2Wr, curTotWr, man, forsaEvaluatedScore
                         };
                     });
 
@@ -2670,8 +2698,8 @@
                         let wasActuallyCapped = false;
                         
                         let uncappedScore = finalScore;
+                        let capLimit = Math.max(0, (maxScore * 0.64) - 0.5);
                         if (isCapped || (student._subjectDiscounts && (student._subjectDiscounts[subject] || student._subjectDiscounts[`${subject}_t1`] || student._subjectDiscounts[`${subject}_t2`]))) {
-                            let capLimit = Math.max(0, maxScore * 0.64 - 0.5);
                             if (finalScore <= capLimit) { wasActuallyCapped = true; }
                         }
 
@@ -2738,7 +2766,14 @@
                             
                         } else {
                             baseScoreStr = finalScore;
-                            displayScoreHTML = baseScoreStr;
+                            
+                            if ((isForsa || isMokayed) && baseObj.forsaEvaluatedScore !== null && !currentIsAbsent) {
+                                let evaluatedScore = baseObj.forsaEvaluatedScore;
+                                let rawComponentsScore = valTotW + (hasPractical && !isMokayed ? valTotPr : 0);
+                                displayScoreHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;"><span class="forsa-blue-val">${rawComponentsScore}</span><span class="forsa-pink-badge" title="الدرجة النسبية الموازية المضافة للمجموع">${evaluatedScore}</span></div>`;
+                            } else {
+                                displayScoreHTML = baseScoreStr;
+                            }
 
                             if (currentIsAbsent) {
                                 displayScoreHTML = `<span class="red-circle-badge">غ</span>`;
@@ -2763,7 +2798,12 @@
                                     tdGrade.className = `subject-grade ${subCls} ${raisedGradeInfo.cssClass}`;
                                     internalStatsGrade = raisedGradeInfo.text; 
                                 } else {
-                                    displayScoreHTML = `<span class="red-circle-badge">${baseScoreStr}</span>`;
+                                    if ((isForsa || isMokayed) && baseObj.forsaEvaluatedScore !== null) {
+                                        let rawComponentsScore = valTotW + (hasPractical && !isMokayed ? valTotPr : 0);
+                                        displayScoreHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;"><span class="forsa-blue-val">${rawComponentsScore}</span><span class="red-circle-badge">${baseObj.forsaEvaluatedScore}</span></div>`;
+                                    } else {
+                                        displayScoreHTML = `<span class="red-circle-badge">${baseScoreStr}</span>`;
+                                    }
                                     displayGrade = `<span class="red-circle-badge">${gradeInfo.symbol}</span>`;
                                     subjectIsFailed = true; internalStatsGrade = gradeInfo.text; 
                                 }
