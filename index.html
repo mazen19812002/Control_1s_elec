@@ -103,6 +103,23 @@
             margin: 2px;
         }
 
+        .cap-blue-circle-badge {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #1565c0;
+            background-color: rgba(21, 101, 192, 0.12);
+            color: #0d47a1 !important;
+            font-weight: 900;
+            padding: 2px;
+            box-shadow: 0 2px 6px rgba(21, 101, 192, 0.3);
+            text-shadow: none;
+            margin: 2px;
+        }
+
         .status-select {
             padding: 4px 8px;
             border-radius: 6px;
@@ -161,7 +178,7 @@
         .grace-wrapper, .upgrade-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; }
         .grace-badge { display: inline-flex; justify-content: center; align-items: center; min-width: 28px; height: 28px; border-radius: 50%; background: #28a745; color: #fff; font-size: 15px; font-weight: bold; padding: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); white-space: nowrap; text-shadow: none; border: 2px solid #fff; }
         .upgrade-badge { display: inline-flex; justify-content: center; align-items: center; min-width: 28px; height: 28px; border-radius: 50%; background: #1976d2; color: #fff; font-size: 15px; font-weight: bold; padding: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); white-space: nowrap; text-shadow: none; border: 2px solid #fff; }
-        .cap-badge { display: inline-flex; justify-content: center; align-items: center; min-width: 28px; height: 28px; border-radius: 50%; background: #e67e22; color: #fff; font-size: 15px; font-weight: bold; padding: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); white-space: nowrap; text-shadow: none; border: 2px solid #fff; }
+        .cap-badge { display: inline-flex; justify-content: center; align-items: center; min-width: 28px; height: 28px; border-radius: 50%; background: #1565c0; color: #fff; font-size: 15px; font-weight: bold; padding: 2px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); white-space: nowrap; text-shadow: none; border: 2px solid #fff; }
         
         .fraction-box { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; vertical-align: middle; }
         .fraction-num { border-bottom: 2px solid #00838f; padding-bottom: 2px; margin-bottom: 2px; width: 100%; text-align: center; }
@@ -272,8 +289,9 @@
             .cap-highlight { border-color: #1976d2; color: #1976d2; box-shadow: none; background: transparent; padding: 1px 3px;}
             .grace-badge { background-color: #28a745 !important; color: white !important; padding: 1px 4px; box-shadow: none; }
             .mokayed-badge { background-color: #fce4ec !important; color: #ad1457 !important; border: 1px solid #f48fb1 !important; padding: 1px 4px; box-shadow: none; display: inline-flex; justify-content: center; align-items: center; min-width: 26px; height: 26px; border-radius: 20px; font-size: 14px; font-weight: bold; white-space: nowrap; text-shadow: none; }
-            .cap-badge { background-color: #e67e22 !important; color: white !important; padding: 1px 4px; box-shadow: none; display: inline-flex; justify-content: center; align-items: center; min-width: 26px; height: 26px; border-radius: 20px; font-size: 14px; font-weight: bold; white-space: nowrap; text-shadow: none; }
+            .cap-badge { background-color: #1565c0 !important; color: white !important; padding: 1px 4px; box-shadow: none; display: inline-flex; justify-content: center; align-items: center; min-width: 26px; height: 26px; border-radius: 20px; font-size: 14px; font-weight: bold; white-space: nowrap; text-shadow: none; }
             .red-circle-badge { border-color: #d32f2f !important; background-color: transparent !important; color: #d32f2f !important; box-shadow: none !important; }
+            .cap-blue-circle-badge { border-color: #1565c0 !important; background-color: transparent !important; color: #1565c0 !important; box-shadow: none !important; }
             .grace-original { color: #000 !important; font-size: 10px !important;}
             .text-passed { font-size: 10px !important; color: #000 !important; }
             .status-transfer { color: #000 !important; font-weight: bold !important; }
@@ -1160,15 +1178,44 @@
         function updateManualPassScore(stIdx, subjIdx, term, comp, val, id) {
             let st = currentRenderedData[stIdx];
             let sub = defaultSubjects[subjIdx];
-            if (st && st.scores[sub] && st.scores[sub].manual && st.scores[sub].manual[term]) {
-                st.scores[sub].manual[term][comp] = val;
-                st.scores[sub].hasRecord = true; 
-                triggerReRender();
-                if (id) {
-                    setTimeout(() => {
-                        let el = document.getElementById(id);
-                        if(el) { el.focus(); el.select(); }
-                    }, 50);
+            if (st && st.scores[sub]) {
+                st.scores[sub].manual = st.scores[sub].manual || { t1:{yw:'', prac:'', writ:''}, t2:{yw:'', prac:'', writ:''}, total:{yw:'', prac:'', writ:''} };
+                if (st.scores[sub].manual[term]) {
+                    let parsedVal = val !== '' ? parseFloat(val) : '';
+                    if (!isNaN(parsedVal) && parsedVal !== '') {
+                        let maxLimit = 100;
+                        let ms = st.maxScores[sub];
+                        let fb = getSubjectFallbackMaxes(sub);
+                        let isCont = dynamicContinuousSubjects.includes(sub);
+                        let hasPrac = practicalSubjectsKeys.includes(sub);
+
+                        if (comp === 'writ') {
+                            if (term === 't1' || term === 't2') maxLimit = st.scores[sub][term]?.maxWr || (fb.wr / 2);
+                            else maxLimit = customSubjectMaxes[sub] ? (customSubjectMaxes[sub] * (fb.wr / fb.tot)) : (ms?.written || fb.wr);
+                        } else if (comp === 'yw') {
+                            if (term === 't1' || term === 't2') maxLimit = st.scores[sub][term]?.maxYW || (fb.yw / 2);
+                            else maxLimit = ms?.yearWork || fb.yw;
+                        } else if (comp === 'prac') {
+                            if (term === 't1' || term === 't2') maxLimit = st.scores[sub][term]?.maxPrac || (fb.pr / 2);
+                            else maxLimit = ms?.practical || fb.pr;
+                        }
+
+                        if (parsedVal > maxLimit) {
+                            alert(`الدرجة المدخلة (${parsedVal}) تتجاوز الحد الأقصى المسموح به (${maxLimit}) لهذا المكون.`);
+                            parsedVal = maxLimit;
+                            val = maxLimit;
+                        }
+                    }
+
+                    st.scores[sub].manual[term][comp] = val;
+                    st.scores[sub].hasRecord = true; 
+                    triggerReRender();
+                    if (id) {
+                        setTimeout(() => {
+                            let el = document.getElementById(id);
+                            if(el) { el.focus(); el.select(); }
+                        }, 50);
+                    }
                 }
             }
         }
@@ -2302,7 +2349,6 @@
                             if (finalScore > capLimit) { finalScore = capLimit; }
                         }
 
-                        // إصلاح عملية تخفيض الدرجات لتصبح مساوية لـ (64% - 0.5 درجة) من مجموع المادة
                         if (isContinuous) {
                             let t1Max = actual.t1?.maxTot > 0 ? actual.t1.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
                             let t2Max = actual.t2?.maxTot > 0 ? actual.t2.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
@@ -2462,7 +2508,6 @@
                         let tdTotal = document.createElement('td'); tdTotal.className = `subject-total ${subCls}`; 
                         let tdGrade = document.createElement('td'); tdGrade.className = `subject-grade ${subCls}`;
 
-                        // إضافة زر التخفيض لجميع الحالات لغير المستجدين، مع إتاحتها للمواد الممتدة والتخلف والراسبين
                         let discountBtnHtml = '';
                         if (!isFreshman) {
                             let isDiscountsActive = student._subjectDiscounts && student._subjectDiscounts[subject];
@@ -2627,9 +2672,9 @@
                         let wasActuallyCapped = false;
                         
                         let uncappedScore = finalScore;
-                        if (isCapped) {
+                        if (isCapped || (student._subjectDiscounts && (student._subjectDiscounts[subject] || student._subjectDiscounts[`${subject}_t1`] || student._subjectDiscounts[`${subject}_t2`]))) {
                             let capLimit = Math.max(0, maxScore * 0.64 - 0.5);
-                            if (finalScore >= capLimit) { wasActuallyCapped = true; }
+                            if (finalScore <= capLimit) { wasActuallyCapped = true; }
                         }
 
                         let calculatedScoreForGrade = finalScore;
@@ -2678,7 +2723,7 @@
                                 if (graceAdded > 0) {
                                     valInpHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;"><span class="grace-badge" title="الدرجة الجديدة بعد تطبيق الرأفة">${effectiveTakhVal}</span><span class="grace-original" title="الدرجة المدخلة الأصلية">${numVal}</span></div>`;
                                 } else if (wasActuallyCapped) {
-                                    valInpHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;"><span class="cap-badge" title="الدرجة الجديدة بعد التخفيض">${finalScore}</span><span class="grace-original" title="الدرجة الأصلية">${numVal}</span></div>`;
+                                    valInpHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;"><span class="cap-blue-circle-badge" title="الدرجة الجديدة بعد التخفيض">${finalScore}</span><span class="grace-original" title="الدرجة الأصلية">${numVal}</span></div>`;
                                 }
 
                                 displayGrade = takhGradeInfo.symbol;
@@ -2766,7 +2811,7 @@
                                     
                                     if (upgradeAdded === 0 && graceAdded === 0) {
                                         if (wasActuallyCapped) {
-                                            displayScoreHTML = `<div class="upgrade-wrapper"><span class="cap-badge">${baseScoreStr}</span><span class="grace-original">${uncappedScore}</span></div>`;
+                                            displayScoreHTML = `<span class="cap-blue-circle-badge" title="الدرجة بعد التخفيض">${baseScoreStr}</span>`;
                                             tdGrade.className = `subject-grade ${subCls} cap-grade`;
                                         } else {
                                             internalStatsGrade = gradeInfo.text;
