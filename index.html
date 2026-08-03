@@ -2371,19 +2371,19 @@
                             if (isContinuous) {
                                 let t1Max = actual.t1?.maxTot > 0 ? actual.t1.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
                                 let t1Score = cur1Yw + cur1Pr + cur1Wr;
-                                let cap1 = Math.max(0, (t1Max * 0.64) - 0.5);
+                                let cap1 = Math.max(0, (t1Max * 0.65) - 0.5);
                                 if (t1Score > cap1) {
                                     finalScore -= (t1Score - cap1);
                                 }
                                 let t2Max = actual.t2?.maxTot > 0 ? actual.t2.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
                                 let t2Score = cur2Yw + cur2Pr + cur2Wr;
-                                let cap2 = Math.max(0, (t2Max * 0.64) - 0.5);
+                                let cap2 = Math.max(0, (t2Max * 0.65) - 0.5);
                                 if (t2Score > cap2) {
                                     finalScore -= (t2Score - cap2);
                                 }
                             } else {
                                 let maxScoreC = customSubjectMaxes[subject] || maxs?.finalTotal || (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0));
-                                let capTot = Math.max(0, (maxScoreC * 0.64) - 0.5);
+                                let capTot = Math.max(0, (maxScoreC * 0.65) - 0.5);
                                 if (finalScore > capTot) {
                                     finalScore = capTot;
                                 }
@@ -2392,7 +2392,7 @@
 
                         let isCapped = (applyAtRiskRules || isTakhlof) && student._capRepeater && student._capRepeater[subject];
                         if (isCapped) {
-                            let capLimit = Math.max(0, (maxScore * 0.64) - 0.5);
+                            let capLimit = Math.max(0, (maxScore * 0.65) - 0.5);
                             if (finalScore > capLimit) { finalScore = capLimit; }
                         }
 
@@ -2405,19 +2405,19 @@
                             let isTotDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
 
                             if (isT1Discount || isTotDiscount) {
-                                let cap1 = Math.max(0, (t1Max * 0.64) - 0.5);
+                                let cap1 = Math.max(0, (t1Max * 0.65) - 0.5);
                                 let cur1Score = cur1Yw + cur1Pr + cur1Wr;
                                 if (cur1Score > cap1) finalScore -= (cur1Score - cap1);
                             }
                             if (isT2Discount || isTotDiscount) {
-                                let cap2 = Math.max(0, (t2Max * 0.64) - 0.5);
+                                let cap2 = Math.max(0, (t2Max * 0.65) - 0.5);
                                 let cur2Score = cur2Yw + cur2Pr + cur2Wr;
                                 if (cur2Score > cap2) finalScore -= (cur2Score - cap2);
                             }
                         } else {
                             let hasDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
                             if (hasDiscount) {
-                                let targetCap = Math.max(0, (maxScore * 0.64) - 0.5);
+                                let targetCap = Math.max(0, (maxScore * 0.65) - 0.5);
                                 if (finalScore > targetCap) {
                                     finalScore = targetCap;
                                 }
@@ -2752,7 +2752,7 @@
                         let wasActuallyCapped = false;
                         
                         let uncappedScore = finalScore;
-                        let capLimit = Math.max(0, (maxScore * 0.64) - 0.5);
+                        let capLimit = Math.max(0, (maxScore * 0.65) - 0.5);
                         if (isCapped || (student._subjectDiscounts && (student._subjectDiscounts[subject] || student._subjectDiscounts[`${subject}_t1`] || student._subjectDiscounts[`${subject}_t2`]))) {
                             if (finalScore <= capLimit) { wasActuallyCapped = true; }
                         }
