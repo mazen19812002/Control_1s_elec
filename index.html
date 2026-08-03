@@ -1694,7 +1694,7 @@
                             t1: { yw: '-', prac: '-', writ: '-', maxTot: 0, maxWr: 0, maxYW: 0, maxPrac: 0, isAbsent: false },
                             t2: { yw: '-', prac: '-', writ: '-', maxTot: 0, maxWr: 0, maxYW: 0, maxPrac: 0, isAbsent: false },
                             total: { yw: 0, prac: 0, writ: 0, tot: 0 },
-                            manual: { t1:{yw:'', prac:'', writ:''}, t2:{yw:'', prac:'', writ:''} },
+                            manual: { t1:{yw:'', prac:'', writ:''}, t2:{yw:'', prac:'', writ:''}, total:{yw:'', prac:'', writ:''} },
                             passedT1: false, passedT2: false, isAbsent: false, absentTerms: 0, totalTerms: 0
                         };
                         studentsDatabase[primaryLookupKey].maxScores[sub] = { yearWork: 0, practical: 0, written: 0, finalTotal: 0 };
@@ -1765,7 +1765,7 @@
                 }
             });
         }
-
+        
         function processExcelData(fileBuffer, defSubject, termNum) {
             const currentWorkbook = XLSX.read(fileBuffer, { type: 'array' });
             currentWorkbook.SheetNames.forEach(sheetName => {
