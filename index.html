@@ -2127,6 +2127,14 @@
                     return;
                 }
 
+                // دالة مساعدة لتحديد ما إذا كان الرقم مقفولاً للتعديل (لغير المستجدين)
+                const isValReadOnly = (val) => {
+                    if (val === undefined || val === null || val === '' || val === '-') return false;
+                    if (val === 0 || val === '0' || parseFloat(val) === 0) return false;
+                    if (val === 'غ' || val === 'غائب') return false; 
+                    return true;
+                };
+
                 let currentSubjectUpgradeLimitPct = allowUpgrade ? subjectUpgradeLimitPct : 0;
                 let currentOverallUpgradeLimitPct = allowUpgrade ? overallUpgradeLimitPct : 0;
                 let excludeZeroWrittenFromBulk = document.getElementById('chkExcludeZeroWritten').checked;
@@ -2367,6 +2375,11 @@
                             }
                         }
 
+                        let isCapped = (applyAtRiskRules || isTakhlof) && student._capRepeater && student._capRepeater[subject];
+                        let hasDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
+
+                        let targetCap = Math.max(0, (maxScore * 0.65) - 0.5);
+                        
                         if (isRepeater && !isForsa) {
                             if (isContinuous) {
                                 let t1Max = actual.t1?.maxTot > 0 ? actual.t1.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
@@ -2382,45 +2395,15 @@
                                     finalScore -= (t2Score - cap2);
                                 }
                             } else {
-                                let maxScoreC = customSubjectMaxes[subject] || maxs?.finalTotal || (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0));
-                                let capTot = Math.max(0, (maxScoreC * 0.65) - 0.5);
-                                if (finalScore > capTot) {
-                                    finalScore = capTot;
-                                }
-                            }
-                        }
-
-                        let isCapped = (applyAtRiskRules || isTakhlof) && student._capRepeater && student._capRepeater[subject];
-                        if (isCapped) {
-                            let capLimit = Math.max(0, (maxScore * 0.65) - 0.5);
-                            if (finalScore > capLimit) { finalScore = capLimit; }
-                        }
-
-                        if (isContinuous) {
-                            let t1Max = actual.t1?.maxTot > 0 ? actual.t1.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
-                            let t2Max = actual.t2?.maxTot > 0 ? actual.t2.maxTot : (fbLocal.yw + fbLocal.wr + (hasPractical ? fbLocal.pr : 0)) / 2;
-                            
-                            let isT1Discount = student._subjectDiscounts && student._subjectDiscounts[`${subject}_t1`];
-                            let isT2Discount = student._subjectDiscounts && student._subjectDiscounts[`${subject}_t2`];
-                            let isTotDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
-
-                            if (isT1Discount || isTotDiscount) {
-                                let cap1 = Math.max(0, (t1Max * 0.65) - 0.5);
-                                let cur1Score = cur1Yw + cur1Pr + cur1Wr;
-                                if (cur1Score > cap1) finalScore -= (cur1Score - cap1);
-                            }
-                            if (isT2Discount || isTotDiscount) {
-                                let cap2 = Math.max(0, (t2Max * 0.65) - 0.5);
-                                let cur2Score = cur2Yw + cur2Pr + cur2Wr;
-                                if (cur2Score > cap2) finalScore -= (cur2Score - cap2);
-                            }
-                        } else {
-                            let hasDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
-                            if (hasDiscount) {
-                                let targetCap = Math.max(0, (maxScore * 0.65) - 0.5);
                                 if (finalScore > targetCap) {
                                     finalScore = targetCap;
                                 }
+                            }
+                        }
+
+                        if (isCapped || hasDiscount) {
+                            if (finalScore > targetCap) {
+                                finalScore = targetCap;
                             }
                         }
 
@@ -2583,7 +2566,7 @@
                             let isDiscountsActive = student._subjectDiscounts && student._subjectDiscounts[subject];
                             let triangleSymbol = isDiscountsActive ? '▼' : '▲';
                             let triangleColor = isDiscountsActive ? '#d32f2f' : '#2e7d32';
-                            let titleText = isDiscountsActive ? 'إلغاء التخفيض' : 'تطبيق التخفيض (64% - 0.5)';
+                            let titleText = isDiscountsActive ? 'إلغاء التخفيض' : 'تطبيق التخفيض (65% - 0.5)';
                             discountBtnHtml = `<button class="discount-btn" onclick="toggleStudentDiscount(${studentIndex}, '${subject}')" title="${titleText}"><span style="color: ${triangleColor}; font-size: 14px;">${triangleSymbol}</span></button>`;
                         }
 
@@ -2599,7 +2582,7 @@
                             if (isTakhlof) {
                                 let currentMax = maxs?.written || 100;
                                 let valInpId = `takh_val_${studentIndex}_${subjectIndex}`;
-                                let valInp = `<input type="text" id="${valInpId}" class="score-edit-input" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #00bcd4; border-radius:4px; font-weight:bold; background:#e0f7fa; color:#006064;" placeholder="-" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value, '${valInpId}')">`;
+                                let valInp = `<input type="text" id="${valInpId}" class="score-edit-input" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #00bcd4; border-radius:4px; font-weight:bold; background:#e0f7fa; color:#006064;" placeholder="-" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value, '${valInpId}')" ${(!isFreshman && isValReadOnly(actual.total?.writ)) ? 'readonly' : ''}>`;
                                 let maxInp = `<input type="number" id="max_${studentIndex}_${subjectIndex}" step="1" min="1" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #e67e22; border-radius:4px; font-weight:bold; background:#fff3e0; color:#d35400;" value="${currentMax}" onchange="updateTakhMax(${studentIndex}, '${subject}', this.value)">`;
                                 let humCheck = `<label style="font-size:11px; color:#555; display:flex; align-items:center; justify-content:center; gap:4px; margin-top:5px; font-weight:bold; cursor:pointer;"><input type="checkbox" onchange="updateTakhHum(${studentIndex}, '${subject}', this.checked)" ${actual.isHum ? 'checked' : ''}> مادة إنسانية</label>`;
                                 
@@ -2657,26 +2640,17 @@
                             return act[t]?.isAbsent || m[t].writ === 'غ' || m[t].yw === 'غ' || m[t].prac === 'غ' || act[t]?.yw === 'غ' || act[t]?.prac === 'غ';
                         }
 
-                        let discountBtnT1Html = '';
-                        let discountBtnT2Html = '';
-                        if (!isFreshman && isContinuous) {
-                            let isT1Dis = student._subjectDiscounts && student._subjectDiscounts[`${subject}_t1`];
-                            let isT2Dis = student._subjectDiscounts && student._subjectDiscounts[`${subject}_t2`];
-                            discountBtnT1Html = `<button class="discount-btn" onclick="toggleStudentDiscount(${studentIndex}, '${subject}', 't1')" title="تخفيض الترم الأول"><span style="color: ${isT1Dis ? '#d32f2f' : '#2e7d32'}; font-size: 12px;">${isT1Dis ? '▼' : '▲'}</span></button>`;
-                            discountBtnT2Html = `<button class="discount-btn" onclick="toggleStudentDiscount(${studentIndex}, '${subject}', 't2')" title="تخفيض الترم الثاني"><span style="color: ${isT2Dis ? '#d32f2f' : '#2e7d32'}; font-size: 12px;">${isT2Dis ? '▼' : '▲'}</span></button>`;
-                        }
+                        let inpT1Yw = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.t1.yw !== '' ? man.t1.yw : (actual.t1?.yw !== undefined && actual.t1?.yw !== '-' ? actual.t1.yw : '')}" placeholder="${actual.t1?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'yw', this.value)" ${(!isFreshman && isValReadOnly(actual.t1?.yw)) ? 'readonly' : ''}>` : null;
+                        let inpT2Yw = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.t2.yw !== '' ? man.t2.yw : (actual.t2?.yw !== undefined && actual.t2?.yw !== '-' ? actual.t2.yw : '')}" placeholder="${actual.t2?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'yw', this.value)" ${(!isFreshman && isValReadOnly(actual.t2?.yw)) ? 'readonly' : ''}>` : null;
+                        let inpTotYw = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.total.yw !== '' ? man.total.yw : (actual.total?.yw !== undefined ? actual.total.yw : '')}" placeholder="${actual.total?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'yw', this.value)" ${(!isFreshman && isValReadOnly(actual.total?.yw)) ? 'readonly' : ''}>` : null;
 
-                        let inpT1Yw = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.t1.yw !== '' ? man.t1.yw : (actual.t1?.yw !== undefined && actual.t1?.yw !== '-' ? actual.t1.yw : '')}" placeholder="${actual.t1?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'yw', this.value)">` : null;
-                        let inpT2Yw = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.t2.yw !== '' ? man.t2.yw : (actual.t2?.yw !== undefined && actual.t2?.yw !== '-' ? actual.t2.yw : '')}" placeholder="${actual.t2?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'yw', this.value)">` : null;
-                        let inpTotYw = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.total.yw !== '' ? man.total.yw : (actual.total?.yw !== undefined ? actual.total.yw : '')}" placeholder="${actual.total?.yw||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'yw', this.value)">` : null;
+                        let inpT1Pr = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.t1.prac !== '' ? man.t1.prac : (actual.t1?.prac !== undefined && actual.t1?.prac !== '-' ? actual.t1.prac : '')}" placeholder="${actual.t1?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'prac', this.value)" ${(!isFreshman && isValReadOnly(actual.t1?.prac)) ? 'readonly' : ''}>` : null;
+                        let inpT2Pr = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.t2.prac !== '' ? man.t2.prac : (actual.t2?.prac !== undefined && actual.t2?.prac !== '-' ? actual.t2.prac : '')}" placeholder="${actual.t2?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'prac', this.value)" ${(!isFreshman && isValReadOnly(actual.t2?.prac)) ? 'readonly' : ''}>` : null;
+                        let inpTotPr = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.total.prac !== '' ? man.total.prac : (actual.total?.prac !== undefined ? actual.total.prac : '')}" placeholder="${actual.total?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'prac', this.value)" ${(!isFreshman && isValReadOnly(actual.total?.prac)) ? 'readonly' : ''}>` : null;
 
-                        let inpT1Pr = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.t1.prac !== '' ? man.t1.prac : (actual.t1?.prac !== undefined && actual.t1?.prac !== '-' ? actual.t1.prac : '')}" placeholder="${actual.t1?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'prac', this.value)">` : null;
-                        let inpT2Pr = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.t2.prac !== '' ? man.t2.prac : (actual.t2?.prac !== undefined && actual.t2?.prac !== '-' ? actual.t2.prac : '')}" placeholder="${actual.t2?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'prac', this.value)">` : null;
-                        let inpTotPr = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.total.prac !== '' ? man.total.prac : (actual.total?.prac !== undefined ? actual.total.prac : '')}" placeholder="${actual.total?.prac||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'prac', this.value)">` : null;
-
-                        let inpT1W = !isFreshman ? `<div style="display:flex; align-items:center; justify-content:center;">${discountBtnT1Html}<input type="text" class="score-edit-input" value="${man.t1.writ !== '' ? man.t1.writ : (actual.t1?.writ !== undefined && actual.t1?.writ !== '-' ? actual.t1.writ : '')}" placeholder="${actual.t1?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'writ', this.value)"></div>` : null;
-                        let inpT2W = !isFreshman ? `<div style="display:flex; align-items:center; justify-content:center;">${discountBtnT2Html}<input type="text" class="score-edit-input" value="${man.t2.writ !== '' ? man.t2.writ : (actual.t2?.writ !== undefined && actual.t2?.writ !== '-' ? actual.t2.writ : '')}" placeholder="${actual.t2?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'writ', this.value)"></div>` : null;
-                        let inpTotW = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.total.writ !== '' ? man.total.writ : (actual.total?.writ !== undefined ? actual.total.writ : '')}" placeholder="${actual.total?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value)">` : null;
+                        let inpT1W = !isFreshman ? `<div style="display:flex; align-items:center; justify-content:center;"><input type="text" class="score-edit-input" value="${man.t1.writ !== '' ? man.t1.writ : (actual.t1?.writ !== undefined && actual.t1?.writ !== '-' ? actual.t1.writ : '')}" placeholder="${actual.t1?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't1', 'writ', this.value)" ${(!isFreshman && isValReadOnly(actual.t1?.writ)) ? 'readonly' : ''}></div>` : null;
+                        let inpT2W = !isFreshman ? `<div style="display:flex; align-items:center; justify-content:center;"><input type="text" class="score-edit-input" value="${man.t2.writ !== '' ? man.t2.writ : (actual.t2?.writ !== undefined && actual.t2?.writ !== '-' ? actual.t2.writ : '')}" placeholder="${actual.t2?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 't2', 'writ', this.value)" ${(!isFreshman && isValReadOnly(actual.t2?.writ)) ? 'readonly' : ''}></div>` : null;
+                        let inpTotW = !isFreshman ? `<input type="text" class="score-edit-input" value="${man.total.writ !== '' ? man.total.writ : (actual.total?.writ !== undefined ? actual.total.writ : '')}" placeholder="${actual.total?.writ||'-'}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value)" ${(!isFreshman && isValReadOnly(actual.total?.writ)) ? 'readonly' : ''}>` : null;
 
                         if (isForsa || isMokayed) {
                             valTotYw = 0; dispTotYw = '-'; 
@@ -2739,22 +2713,30 @@
                             }
                         }
 
-                        let finalScore = (valTotYw + valTotPr + valTotW);
+                        let finalScore = baseObj.finalScore;
                         let maxScore = baseObj.maxScore;
                         let currentMaxWrit = baseObj.currentMaxWrit;
                         let isBylawFail = baseObj.isBylawFail;
                         let isFailing = baseObj.isFailing;
+                        
                         let isCapped = baseObj.isCapped;
-                        let internalStatsGrade = 'غائب';
+                        let hasDiscount = student._subjectDiscounts && student._subjectDiscounts[subject];
 
+                        let internalStatsGrade = 'غائب';
                         let subjectIsFailed = false;
                         let graceAdded = 0; let upgradeAdded = 0;
                         let wasActuallyCapped = false;
                         
                         let uncappedScore = finalScore;
                         let capLimit = Math.max(0, (maxScore * 0.65) - 0.5);
-                        if (isCapped || (student._subjectDiscounts && (student._subjectDiscounts[subject] || student._subjectDiscounts[`${subject}_t1`] || student._subjectDiscounts[`${subject}_t2`]))) {
-                            if (finalScore <= capLimit) { wasActuallyCapped = true; }
+                        
+                        if (isCapped || hasDiscount) {
+                            if (finalScore > capLimit) { 
+                                finalScore = capLimit; 
+                                wasActuallyCapped = true; 
+                            } else if (hasDiscount) {
+                                wasActuallyCapped = true; 
+                            }
                         }
 
                         let calculatedScoreForGrade = finalScore;
@@ -2777,7 +2759,7 @@
                             let currentMax = maxs?.written || maxs?.finalTotal || customSubjectMaxes[subject] || 100;
                             let currentVal = man.total.writ !== '' ? man.total.writ : (currentIsAbsent ? 'غ' : actual.total.writ);
                             let valInpId = `takh_val_${studentIndex}_${subjectIndex}`;
-                            let valInp = `<input type="text" id="${valInpId}" class="score-edit-input" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #00bcd4; border-radius:4px; font-weight:bold; background:#e0f7fa; color:#006064;" value="${currentVal}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value, '${valInpId}')">`;
+                            let valInp = `<input type="text" id="${valInpId}" class="score-edit-input" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #00bcd4; border-radius:4px; font-weight:bold; background:#e0f7fa; color:#006064;" value="${currentVal}" onchange="updateManualPassScore(${studentIndex}, ${subjectIndex}, 'total', 'writ', this.value, '${valInpId}')" ${(!isFreshman && isValReadOnly(actual.total?.writ)) ? 'readonly' : ''}>`;
                             let maxInp = `<input type="number" id="max_${studentIndex}_${subjectIndex}" step="1" min="1" style="width:40px; padding:2px; font-size:14px; text-align:center; border:2px solid #e67e22; border-radius:4px; font-weight:bold; background:#fff3e0; color:#d35400;" value="${currentMax}" onchange="updateTakhMax(${studentIndex}, '${subject}', this.value)">`;
                             let humCheck = `<label style="font-size:11px; color:#555; display:flex; align-items:center; justify-content:center; gap:4px; margin-top:5px; font-weight:bold; cursor:pointer;"><input type="checkbox" onchange="updateTakhHum(${studentIndex}, '${subject}', this.checked)" ${actual.isHum ? 'checked' : ''}> مادة إنسانية</label>`;
                             
@@ -2803,7 +2785,8 @@
                                 if (graceAdded > 0) {
                                     valInpHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;"><span class="grace-badge" title="الدرجة الجديدة بعد تطبيق الرأفة">${effectiveTakhVal}</span><span class="grace-original" title="الدرجة المدخلة الأصلية">${numVal}</span></div>`;
                                 } else if (wasActuallyCapped) {
-                                    valInpHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;"><span class="cap-blue-circle-badge" title="الدرجة بعد التخفيض">${finalScore}</span><span class="grace-original" title="الدرجة الأصلية">${numVal}</span></div>`;
+                                    let originalSpan = (finalScore !== uncappedScore) ? `<span class="grace-original" title="الدرجة الأصلية">${uncappedScore}</span>` : '';
+                                    valInpHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;"><span class="cap-blue-circle-badge" title="الدرجة بعد التخفيض">${finalScore}</span>${originalSpan}</div>`;
                                 }
 
                                 displayGrade = takhGradeInfo.symbol;
@@ -2874,7 +2857,7 @@
                                     tdGrade.className = `subject-grade ${subCls} ${raisedGradeInfo.cssClass}`;
                                     internalStatsGrade = raisedGradeInfo.text; 
                                 } else {
-                                    if (!isCapped && activeSubjUpgradePct > 0) {
+                                    if (!isCapped && !hasDiscount && activeSubjUpgradePct > 0) {
                                         let nextThreshold = 0;
                                         if (percentage >= 50 && percentage < 65) nextThreshold = 65;
                                         else if (percentage >= 65 && percentage < 75) nextThreshold = 75;
@@ -2904,7 +2887,8 @@
                                     if (upgradeAdded === 0 && graceAdded === 0) {
                                         if (wasActuallyCapped) {
                                             let currentCapGradeInfo = getEgyptianGrade((finalScore / maxScore) * 100);
-                                            displayScoreHTML = `<span class="cap-blue-circle-badge" title="الدرجة بعد التخفيض">${baseScoreStr}</span>`;
+                                            let originalSpan = (finalScore !== uncappedScore) ? `<span class="grace-original" title="الدرجة الأصلية">${uncappedScore}</span>` : '';
+                                            displayScoreHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;"><span class="cap-blue-circle-badge" title="الدرجة بعد التخفيض">${finalScore}</span>${originalSpan}</div>`;
                                             displayGrade = currentCapGradeInfo.symbol;
                                             tdGrade.className = `subject-grade ${subCls} ${currentCapGradeInfo.cssClass} cap-grade`;
                                             internalStatsGrade = currentCapGradeInfo.text;
@@ -3090,6 +3074,7 @@
                 alert("حدث خطأ تقني أثناء محاولة رسم النتائج: " + err.message);
             }
         }
+        
 
         function openStatsModal() {
             if(currentRenderedData.length === 0) { alert("يرجى معالجة الكشوف أولاً."); return; }
